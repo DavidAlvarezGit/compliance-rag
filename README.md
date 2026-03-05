@@ -1,6 +1,6 @@
 # Banking Regulation Compliance Assistant (RAG) — Basel III & FINMA
 
-**Live demo:** https://your-streamlit-app-url.streamlit.app](https://compliance-rag.streamlit.app/
+**Live demo:** (https://compliance-rag.streamlit.app/)
 
 ## 1) Project Overview
 **What it is**  
