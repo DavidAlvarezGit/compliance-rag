@@ -20,9 +20,6 @@ Unlike a standard ChatGPT-style model that may generate responses without citing
 - **Better handling of unsupported queries**  
   Correctly refused questions without supporting evidence 92.5% of the time compared to 72.5% for the standard chat model, reducing the risk of unsupported answers.
 
-- **Improved traceability**  
-  65% of responses included citations to the underlying regulatory documents.
-
 - **Interactive prototype**  
   Delivered as a Streamlit application enabling compliance teams to query regulatory texts through a structured Q&A interface.
 
