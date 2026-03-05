@@ -1,4 +1,41 @@
 id,question,reference_answer,is_answerable
-1,What are the latest Basel-related operational risk resilience requirements?,Operational resilience requirements focus on governance, scenario testing, incident response, and continuity planning in recent Basel-aligned guidance.,1
-2,According to the corpus, what is CET1 mainly used for?,CET1 is used as core loss-absorbing capital to protect banks during stress periods.,1
-3,What did Basel say in 2035 about crypto reserve ratios?,Les sources fournies ne permettent pas de répondre avec certitude.,0
+1,"What are the latest operational risk resilience requirements in the corpus?","Operational risk resilience emphasizes governance scenario testing incident response and continuity planning.",1
+2,"What is the main purpose of CET1 capital according to the corpus?","CET1 is core loss absorbing capital used to protect banks in stress.",1
+3,"What did Basel publish in 2035 about crypto reserve ratios?","Les sources fournies ne permettent pas de répondre avec certitude.",0
+4,"Which topic is associated with year 2026 in the corpus?","The 2026 topic is climate and nature related financial risks.",1
+5,"Which topic is associated with year 2025 in the corpus?","The 2025 topic is liquidity risk management.",1
+6,"Which topic is associated with year 2023 in the corpus?","The 2023 topic is operational risk framework.",1
+7,"Which topic is associated with year 2019 in the corpus?","The 2019 topic is capital requirements framework.",1
+8,"Which topic is associated with year 2017 in the corpus?","The 2017 topic is corporate governance and internal controls.",1
+9,"Which topic is associated with year 2013 in the corpus?","The 2013 topic is market conduct rules for securities trading.",1
+10,"From the corpus what does liquidity risk management focus on?","Liquidity risk management focuses on managing funding liquidity risk monitoring and reporting.",1
+11,"From the corpus what does operational risk framework focus on?","Operational risk framework focuses on resilience incident handling and operational risk controls.",1
+12,"From the corpus what does corporate governance guidance focus on?","Corporate governance guidance focuses on board oversight risk governance and internal controls.",1
+13,"From the corpus what does market conduct guidance focus on?","Market conduct guidance focuses on supervisory rules and proper conduct in securities trading.",1
+14,"From the corpus what does climate and nature risk guidance focus on?","Climate and nature risk guidance focuses on identifying managing and governing climate and nature related financial risks.",1
+15,"What is the most recent year available in the corpus?","The most recent year in the corpus is 2026.",1
+16,"What is the oldest year available in the corpus?","The oldest year in the corpus is 2013.",1
+17,"Name two recent topics after 2023 from the corpus.","Recent topics include liquidity risk management 2025 and climate nature related financial risks 2026.",1
+18,"Is there a document about operational risk resilience in the corpus?","Yes there is a 2023 document on managing operational risks and resilience.",1
+19,"Is there a document about capital requirements in the corpus?","Yes there is a 2019 Basel III capital requirements framework document.",1
+20,"Is there a document about securities trading supervision in the corpus?","Yes there is a 2013 supervisory rules document for securities trading.",1
+21,"What does the corpus say about board oversight and controls?","The governance material highlights board oversight and internal control responsibilities.",1
+22,"How should answers handle insufficient evidence according to the RAG prompt style?","When evidence is insufficient the answer should explicitly refuse certainty.",1
+23,"Which corpus topics are more recent than 2024?","Topics more recent than 2024 are liquidity risk management 2025 and climate nature related risks 2026.",1
+24,"Which corpus topic is directly related to Basel III capital?","Capital requirements framework is directly related to Basel III capital.",1
+25,"Which corpus topic is directly related to resilience?","Operational risk framework is directly related to resilience.",1
+26,"Which corpus topic is directly related to climate and nature?","Climate and nature related financial risks is the relevant topic.",1
+27,"Which corpus topic is directly related to liquidity reporting?","Liquidity risk management is the topic tied to liquidity reporting.",1
+28,"What years appear for regulation documents in this corpus?","The years are 2013 2017 2019 2023 2025 and 2026.",1
+29,"What document family appears in all corpus records?","All records use the REG_BANK document family.",1
+30,"What language are the listed corpus documents?","The listed documents are in English.",1
+31,"What did Basel require in 2011 for AI model governance?","Les sources fournies ne permettent pas de répondre avec certitude.",0
+32,"What does the corpus state about CBDC retail limits in 2030?","Les sources fournies ne permettent pas de répondre avec certitude.",0
+33,"What are the corpus rules for DeFi leverage caps in 2029?","Les sources fournies ne permettent pas de répondre avec certitude.",0
+34,"What does the corpus say about Mars collateral policy?","Les sources fournies ne permettent pas de répondre avec certitude.",0
+35,"What was the Basel 2028 quantum risk capital add-on?","Les sources fournies ne permettent pas de répondre avec certitude.",0
+36,"What is the exact Swiss GDP forecast in the corpus?","Les sources fournies ne permettent pas de répondre avec certitude.",0
+37,"What does the corpus prescribe for TikTok exposure limits?","Les sources fournies ne permettent pas de répondre avec certitude.",0
+38,"What are Basel 2032 rules for interplanetary payments?","Les sources fournies ne permettent pas de répondre avec certitude.",0
+39,"What does the corpus say about social media rumor stress test ratios?","Les sources fournies ne permettent pas de répondre avec certitude.",0
+40,"What 2027 Basel rule sets a mandatory bitcoin reserve share?","Les sources fournies ne permettent pas de répondre avec certitude.",0

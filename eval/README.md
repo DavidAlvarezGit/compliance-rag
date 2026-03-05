@@ -32,6 +32,14 @@ poetry run python eval/score_ab.py
 
 This creates `eval/results_scored.csv` and prints a summary.
 
+## 4) Build shareable markdown report
+
+```powershell
+poetry run python eval/make_report.py
+```
+
+This creates `eval/report.md`.
+
 ## Metrics (simple)
 
 - Keyword recall vs reference answer (proxy for correctness)
