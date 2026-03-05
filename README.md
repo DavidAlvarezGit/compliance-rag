@@ -5,7 +5,9 @@
 An AI assistant that answers questions about banking regulation and the Basel Framework using official regulatory documents (e.g., Basel Committee standards, supervisory guidelines, and regulatory publications) as its knowledge base.
 
 **Why it matters**  
-Compliance teams spend significant time checking if answers are backed by real policy text. Answers without evidence create audit and governance risk.
+Compliance teams spend significant time verifying that responses are supported by official regulatory text. Answers that are not directly grounded in authoritative documents create audit, compliance, and governance risks.
+
+Unlike a standard ChatGPT-style model that may generate responses without citing a specific source, this system retrieves relevant passages from regulatory documents and bases its answers on them, ensuring traceability and supporting audit requirements.
 
 **Key results**  
 - Evaluated on a 40-question A/B benchmark (`assistant with retrieval` vs `normal chat`)  
