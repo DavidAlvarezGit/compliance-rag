@@ -90,6 +90,16 @@ poetry run python eval/score_ab.py
 poetry run python eval/make_report.py
 ```
 
+**Deploy on Streamlit Community Cloud**
+1. Push this repo to GitHub.
+2. Go to `https://share.streamlit.io/` and click `New app`.
+3. Select this repo and set entrypoint to `app/streamlit_app.py`.
+4. In `Advanced settings -> Secrets`, add:
+```toml
+OPENAI_API_KEY = "your-key"
+```
+5. Click `Deploy`.
+
 ## 6) Project Structure
 ```text
 snb-rag/

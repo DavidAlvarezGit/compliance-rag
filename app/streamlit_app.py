@@ -91,7 +91,15 @@ def load_faiss() -> faiss.Index:
 
 @st.cache_resource
 def load_openai_client() -> OpenAI:
-    return OpenAI()
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        try:
+            api_key = st.secrets["OPENAI_API_KEY"]
+        except Exception:
+            api_key = None
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set. Set it in environment or Streamlit secrets.")
+    return OpenAI(api_key=api_key)
 
 
 def load_docs_optional() -> Optional[pd.DataFrame]:
