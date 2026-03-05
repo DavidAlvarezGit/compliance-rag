@@ -60,8 +60,10 @@ def hybrid_search(query, top_k=5):
     bm25_indices = np.argsort(bm25_scores)[::-1][:40]
 
     query_vec = model.encode([query], normalize_embeddings=True).astype("float32")
-    distances, vector_indices = index.search(query_vec, 40)
-    vector_sim = 1 / (1 + distances[0])
+    vector_scores, vector_indices = index.search(query_vec, 40)
+    vector_sim = vector_scores[0]
+    if getattr(index, "metric_type", faiss.METRIC_L2) == faiss.METRIC_L2:
+        vector_sim = -vector_sim
 
     combined_indices = set(bm25_indices.tolist()) | set(vector_indices[0].tolist())
     results = df.iloc[list(combined_indices)].copy()

@@ -1,5 +1,5 @@
 # app.py
-# Streamlit UI for your SNB RAG Intelligence System (hybrid retrieval + time/metadata logic + diversity + grounded LLM).
+# Streamlit UI for a banking-regulation RAG system (hybrid retrieval + time/metadata logic + diversity + grounded LLM).
 # Assumes you already have:
 # - data/processed/chunks.parquet  (must include: text, doc_id, year, issue, page_start, page_end)
 # - faiss_index/index.faiss
@@ -35,11 +35,9 @@ DOCS_PATH = os.getenv("DOCS_PATH", str(BASE_DIR / "data" / "metadata" / "docs.cs
 FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", str(BASE_DIR / "data" / "artifacts" / "faiss.index"))
 
 REL_TIME_KEYWORDS = [
-    "récent", "récente", "récemment", "actuel", "actuelle", "dernière", "dernier",
-    "aujourd", "évolution récente", "ces derniers", "ces dernières", "depuis"
+    "recent", "recently", "latest", "current", "last", "today", "depuis",
+    "recent", "recente", "recemment", "actuel", "actuelle", "derniere", "dernier"
 ]
-
-
 # =========================
 # Data structures
 # =========================
@@ -48,6 +46,7 @@ class Chunk:
     idx: int
     doc_id: str
     year: int
+    topic: Optional[str]
     issue: Optional[str]
     page_start: int
     page_end: int
@@ -107,6 +106,8 @@ def load_chunks() -> pd.DataFrame:
     df["page_end"] = df["page_end"].apply(lambda v: safe_int(v, 0))
     if "issue" not in df.columns:
         df["issue"] = None
+    if "topic" not in df.columns:
+        df["topic"] = None
 
     # Ensure stable integer index mapping for FAISS ids and BM25 list positions
     df = df.reset_index(drop=True)
@@ -172,6 +173,9 @@ def retrieve_candidates(
     D, I = index.search(q_vec.astype(np.float32), vec_k)
     vec_idx = I[0].astype(int)
     vec_scores = D[0].astype(float)
+    if getattr(index, "metric_type", faiss.METRIC_L2) == faiss.METRIC_L2:
+        # Lower L2 distance is better; convert to monotonic similarity for score mixing.
+        vec_scores = -vec_scores
 
     # Union candidate set
     cand_ids = set(map(int, bm25_top_idx.tolist())) | set(map(int, vec_idx.tolist()))
@@ -194,6 +198,7 @@ def retrieve_candidates(
     idx=int(idx),
     doc_id=str(row["doc_id"]),
     year=int(row["year"]),
+    topic=None if pd.isna(row.get("topic", None)) else str(row.get("topic", None)),
     issue=None if pd.isna(row.get("issue", None)) else str(row.get("issue", None)),
     page_start=int(row["page_start"]),
     page_end=int(row["page_end"]),
@@ -233,19 +238,26 @@ def apply_time_logic(query: str, cands: List[Chunk], recency_boost: float) -> Li
 
 def apply_metadata_boosts(query: str, cands: List[Chunk], boosts: Dict[str, float]) -> List[Chunk]:
     ql = query.lower()
+    term_groups = [
+        ["capital", "capital requirement", "fonds propres"],
+        ["credit risk", "risque de credit", "standardized approach", "standardised approach", "sa-cr"],
+        ["irb", "internal ratings-based", "notations internes"],
+        ["operational risk", "risque operationnel", "resilience operationnelle"],
+        ["liquidity", "liquidite", "lcr", "nsfr"],
+        ["leverage ratio", "ratio de levier"],
+        ["governance", "controles internes"],
+        ["securities trading", "market conduct", "conduite sur le marche"],
+        ["climate", "nature-related"],
+    ]
 
     for c in cands:
         tl = c.chunk_text.lower()
-
-        # simple, deterministic, metadata-aware nudges
-        if "inflation" in ql and "inflation" in tl:
-            c.boosts += boosts["inflation_match"]
-        if "risque" in ql and "risque" in tl:
-            c.boosts += boosts["risk_match"]
-        if ("politique monétaire" in ql) or ("taux directeur" in ql):
-            # early pages often have policy discussion (heuristic)
-            if c.page_start <= boosts["policy_page_threshold"]:
-                c.boosts += boosts["policy_early_pages"]
+        for group in term_groups:
+            if any(k in ql for k in group) and any(k in tl for k in group):
+                c.boosts += boosts["term_match"]
+                break
+        if c.topic and any(tok in ql for tok in c.topic.replace("_", " ").split()):
+            c.boosts += boosts["topic_match"]
 
         c.hybrid += c.boosts
 
@@ -288,7 +300,7 @@ def generate_answer(
     context = build_context(chunks, max_chunks=max_chunks_for_llm)
 
     prompt = f"""
-Tu es un assistant d'analyse macroéconomique spécialisé SNB.
+Tu es un assistant d'analyse réglementaire bancaire spécialisé Bâle III.
 
 Règles strictes:
 - Utilise UNIQUEMENT le CONTEXTE fourni.
@@ -322,7 +334,7 @@ ANALYSE DÉTAILLÉE:
 # =========================
 # Streamlit UI
 # =========================
-st.set_page_config(page_title="SNB RAG Intelligence", layout="wide")
+st.set_page_config(page_title="Bank Regulation RAG Intelligence", layout="wide")
 
 chunks_df = load_chunks()
 bm25 = load_bm25(chunks_df)
@@ -330,8 +342,8 @@ embedder = load_embedder()
 faiss_index = load_faiss()
 docs_df = load_docs_optional()
 
-st.title("SNB RAG Intelligence System")
-st.caption("Hybrid retrieval (BM25 + FAISS) • time-aware reranking • metadata boosts • diversity control • grounded answers")
+st.title("Basel III RAG Intelligence System")
+st.caption("Hybrid retrieval (BM25 + FAISS) | time-aware reranking | metadata boosts | diversity control | grounded answers")
 
 tab_ask, tab_inspect, tab_about = st.tabs(["Ask", "Retrieval Inspector", "System"])
 
@@ -347,10 +359,8 @@ with st.sidebar:
     recency_boost = st.slider("Recency boost (relative time)", 0.0, 1.0, 0.35, 0.05)
 
     st.header("Metadata boosts")
-    inflation_match = st.slider("Inflation match boost", 0.0, 0.5, 0.15, 0.01)
-    risk_match = st.slider("Risk match boost", 0.0, 0.5, 0.15, 0.01)
-    policy_early_pages = st.slider("Policy early-page boost", 0.0, 0.5, 0.10, 0.01)
-    policy_page_threshold = st.slider("Policy page threshold", 1, 60, 20, 1)
+    term_match = st.slider("Regulatory term match boost", 0.0, 0.5, 0.15, 0.01)
+    topic_match = st.slider("Topic id match boost", 0.0, 0.5, 0.10, 0.01)
 
     st.header("Diversity")
     max_per_doc = st.slider("Max chunks per doc_id", 1, 6, 2, 1)
@@ -365,14 +375,12 @@ with st.sidebar:
     show_scores = st.checkbox("Show scoring details", value=False)
 
 boost_params = {
-    "inflation_match": float(inflation_match),
-    "risk_match": float(risk_match),
-    "policy_early_pages": float(policy_early_pages),
-    "policy_page_threshold": int(policy_page_threshold),
+    "term_match": float(term_match),
+    "topic_match": float(topic_match),
 }
 
 with tab_ask:
-    q = st.text_area("Question", height=90, placeholder="Ex: Quelles sont les évolutions récentes de l'inflation en Suisse ?")
+    q = st.text_area("Question", height=90, placeholder="Ex: What are the latest operational risk resilience requirements?")
     col_a, col_b = st.columns([1, 2])
     run = col_a.button("Run", type="primary", use_container_width=True)
 
@@ -444,6 +452,7 @@ with tab_inspect:
             "rank": r,
             "doc_id": c.doc_id,
             "year": c.year,
+            "topic": c.topic,
             "issue": c.issue,
             "page_start": c.page_start,
             "page_end": c.page_end,
@@ -451,7 +460,7 @@ with tab_inspect:
             "vec": c.vec,
             "boosts": c.boosts,
             "hybrid": c.hybrid,
-            "preview": (c.chunk_text[:220] + "…") if len(c.chunk_text) > 220 else c.chunk_text
+            "preview": (c.chunk_text[:220] + "...") if len(c.chunk_text) > 220 else c.chunk_text
         } for r, c in enumerate(cands[:120], start=1)])
 
         st.dataframe(df, use_container_width=True, height=520)
@@ -462,10 +471,10 @@ with tab_about:
     st.subheader("System")
     st.markdown(
         """
-- **Corpus**: SNB Quarterly Bulletins (FR), 2020–2025  
+- **Corpus**: Basel III regulatory framework documents  
 - **Retrieval**: BM25 + FAISS, score mixing + reranking  
 - **Time-aware**: explicit year filter; relative-time recency rerank  
-- **Metadata-aware**: heuristic boosts (inflation/risk/policy)  
+- **Metadata-aware**: heuristic boosts (regulatory terms + topic id)  
 - **Diversity**: max chunks per doc_id  
 - **Answering**: grounded LLM with mandatory citations (doc_id + page range)
         """.strip()

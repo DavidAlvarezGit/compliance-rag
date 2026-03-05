@@ -46,7 +46,7 @@ def answer_question(query, min_year=None):
     context = build_context(results)
 
     prompt = f"""
-You are a professional macroeconomic research analyst specialized in SNB publications.
+You are a professional banking regulation analyst specialized in the Basel III framework.
 
 Your task:
 - Answer strictly using ONLY the provided sources.
@@ -82,7 +82,7 @@ Sources:
     response = get_client().chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a rigorous economic analyst. You must never hallucinate."},
+            {"role": "system", "content": "You are a rigorous banking regulation analyst. You must never hallucinate."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.0,  # more deterministic
@@ -93,6 +93,6 @@ Sources:
 
 
 if __name__ == "__main__":
-    question = "Quels sont les principaux risques pesant sur la croissance suisse récemment ?"
+    question = "What are the latest Basel-related operational risk resilience requirements?"
     answer = answer_question(question)
     print(answer)

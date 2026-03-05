@@ -13,11 +13,14 @@ df = pd.read_parquet(ARTIFACT_DIR / "embedding_metadata.parquet")
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
 def search(query, top_k=5):
-    query_vec = model.encode([query]).astype("float32")
-    distances, indices = index.search(query_vec, top_k)
+    query_vec = model.encode([query], normalize_embeddings=True).astype("float32")
+    scores, indices = index.search(query_vec, top_k)
+    similarities = scores[0]
+    if getattr(index, "metric_type", faiss.METRIC_L2) == faiss.METRIC_L2:
+        similarities = -similarities
 
     results = df.iloc[indices[0]].copy()
-    results["distance"] = distances[0]
+    results["similarity"] = similarities
 
     return results
 

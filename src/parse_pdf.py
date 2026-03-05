@@ -31,6 +31,7 @@ for _, row in df_docs.iterrows():
         pages.append({
             "doc_id": row["doc_id"],
             "doc_type": row["doc_type"],
+            "topic": row["topic"] if "topic" in row else None,
             "year": row["year"],
             "issue": row["issue"],
             "language": row["language"],

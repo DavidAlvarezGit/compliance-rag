@@ -29,6 +29,7 @@ for doc_id, group in df.groupby("doc_id"):
 
     buffer = ""
     page_start = None
+    last_page_in_buffer = None
 
     for _, row in group.iterrows():
 
@@ -42,29 +43,33 @@ for doc_id, group in df.groupby("doc_id"):
 
         if len(buffer) + len(text) < MAX_CHARS:
             buffer += "\n" + text
+            last_page_in_buffer = row["page"]
         else:
             chunks.append({
                 "doc_id": row["doc_id"],
                 "doc_type": row["doc_type"],
+                "topic": row["topic"] if "topic" in row else None,
                 "year": row["year"],
                 "issue": row["issue"],
                 "language": row["language"],
                 "page_start": page_start,
-                "page_end": row["page"],
+                "page_end": last_page_in_buffer if last_page_in_buffer is not None else page_start,
                 "chunk_text": buffer.strip()
             })
             buffer = text
             page_start = row["page"]
+            last_page_in_buffer = row["page"]
 
     if buffer:
         chunks.append({
             "doc_id": row["doc_id"],
             "doc_type": row["doc_type"],
+            "topic": row["topic"] if "topic" in row else None,
             "year": row["year"],
             "issue": row["issue"],
             "language": row["language"],
             "page_start": page_start,
-            "page_end": row["page"],
+            "page_end": last_page_in_buffer if last_page_in_buffer is not None else page_start,
             "chunk_text": buffer.strip()
         })
 

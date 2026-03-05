@@ -16,12 +16,12 @@ model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 texts = df["chunk_text"].tolist()
 
 print("Generating embeddings...")
-embeddings = model.encode(texts, show_progress_bar=True)
+embeddings = model.encode(texts, show_progress_bar=True, normalize_embeddings=True)
 
 embeddings = np.array(embeddings).astype("float32")
 
 dimension = embeddings.shape[1]
-index = faiss.IndexFlatL2(dimension)
+index = faiss.IndexFlatIP(dimension)
 index.add(embeddings)
 
 faiss.write_index(index, str(OUTPUT_DIR / "faiss.index"))
