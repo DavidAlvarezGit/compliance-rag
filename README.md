@@ -2,7 +2,7 @@
 
 ## 1) Project Overview
 **What it is**  
-An AI assistant that answers Basel III and banking regulation questions using your internal policy documents.
+An AI assistant that answers questions about banking regulation and the Basel Framework using official regulatory documents (e.g., Basel Committee standards, supervisory guidelines, and regulatory publications) as its knowledge base.
 
 **Why it matters**  
 Compliance teams spend significant time checking if answers are backed by real policy text. Answers without evidence create audit and governance risk.
