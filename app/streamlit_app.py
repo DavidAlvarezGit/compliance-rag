@@ -265,13 +265,33 @@ with st.sidebar:
 
 with tab_ask:
     st.subheader("Compliance Question")
+    st.caption("Example questions for trading/compliance use:")
+    ex_col1, ex_col2 = st.columns(2)
+    if ex_col1.button(
+        "Trading Incident Escalation",
+        width="stretch",
+        key="example_q1",
+    ):
+        st.session_state["question_input"] = (
+            "How should trading-related operational risk incidents be escalated and managed?"
+        )
+    if ex_col2.button(
+        "Board Internal Controls",
+        width="stretch",
+        key="example_q2",
+    ):
+        st.session_state["question_input"] = (
+            "What governance responsibilities does the board have for internal controls?"
+        )
+
     with st.form("ask_form", clear_on_submit=False):
         q = st.text_area(
             "Question",
             height=100,
             placeholder="Example: What are the key operational risk resilience obligations in the latest guidance?",
+            key="question_input",
         )
-        run = st.form_submit_button("Generate Compliance Brief", type="primary", use_container_width=True)
+        run = st.form_submit_button("Generate Compliance Brief", type="primary", width="stretch")
 
     if run:
         if not q.strip():
@@ -321,7 +341,7 @@ with tab_inspect:
     st.subheader("Evidence Inspector")
     q2 = st.text_input("Query for Inspection", value="")
     top_n = st.slider("Rows to Display", 10, 120, 40, 10)
-    if st.button("Run Evidence Inspection", use_container_width=False) and q2.strip():
+    if st.button("Run Evidence Inspection", width="content") and q2.strip():
         candidates = retrieve_candidates(
             query=q2.strip(),
             chunks_df=chunks_df,
@@ -352,7 +372,7 @@ with tab_inspect:
                 for rank, c in enumerate(candidates[:top_n], start=1)
             ]
         )
-        st.dataframe(df, use_container_width=True, height=460)
+        st.dataframe(df, width="stretch", height=460)
 
 with tab_system:
     st.subheader("Methodology Overview")
@@ -377,11 +397,12 @@ with tab_system:
             {"parameter": "max_tokens", "value": int(max_tokens)},
         ]
     )
-    st.dataframe(cfg, use_container_width=True, hide_index=True)
+    cfg["value"] = cfg["value"].astype(str)
+    st.dataframe(cfg, width="stretch", hide_index=True)
 
     if docs_df is not None:
         with st.expander("Document Register (docs.csv)", expanded=False):
-            st.dataframe(docs_df, use_container_width=True, height=350)
+            st.dataframe(docs_df, width="stretch", height=350)
     else:
         st.info("Document register (docs.csv) not found.")
 
