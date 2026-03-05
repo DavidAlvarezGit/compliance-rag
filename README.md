@@ -1,4 +1,4 @@
-# Basel III Compliance Assistant (RAG)
+# Banking Regulation Compliance Assistant (RAG) — Basel III & FINMA
 
 ## 1) Project Overview
 **What it is**  
