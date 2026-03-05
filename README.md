@@ -2,69 +2,69 @@
 
 ## 1) Project Overview
 **What it is**  
-A retrieval-augmented generation (RAG) system that answers Basel III and related banking regulation questions using only curated regulatory documents.
+An AI assistant that answers Basel III and banking regulation questions using your internal policy documents.
 
 **Why it matters**  
-Compliance teams lose time validating whether generated answers are grounded in actual policy text. Ungrounded responses create audit and governance risk.
+Compliance teams spend significant time checking if answers are backed by real policy text. Answers without evidence create audit and governance risk.
 
 **Key results**  
-- Evaluated on a 40-question A/B benchmark (`RAG` vs `normal chat without retrieval`)  
-- Higher overall keyword-recall proxy: `0.532` vs `0.409`  
-- Stronger refusal behavior on unanswerable questions: `92.5%` vs `72.5%`  
-- Citation presence in RAG responses: `65.0%`  
-- Delivered as a Streamlit app for interactive compliance Q&A and evidence inspection
+- Evaluated on a 40-question A/B benchmark (`assistant with retrieval` vs `normal chat`)  
+- Higher overall answer-quality proxy: `0.532` vs `0.409`  
+- Better refusal on unsupported questions: `92.5%` vs `72.5%`  
+- Citation presence in responses: `65.0%`  
+- Delivered as a Streamlit app for interactive compliance Q&A
 
 ## 2) Problem Definition
 **Business context**  
-Banking compliance officers need fast, defensible answers tied to source regulation text. A response without evidence is hard to trust and difficult to defend in internal reviews or audits.
+Banking compliance officers need fast, defensible answers tied to source regulation text. If an answer is not linked to evidence, it is hard to trust and difficult to defend in audits.
 
 **Current solution**  
-Typical workflow is manual lookup across multiple PDF documents or use of generic chat tools that can produce plausible but ungrounded responses. This increases review effort and rework.
+Most teams either search many PDFs manually or use generic chat tools that may sound correct but are not source-grounded. This increases review time and rework.
 
 **Proposed solution**  
-Use hybrid retrieval (BM25 + vector search) over a curated regulation corpus, then generate answers constrained to retrieved evidence and citation format.
+Use a document-aware assistant that first finds relevant policy passages, then writes an answer using only those passages with citations.
 
 **Success metrics**  
-Success is measured by answer quality and safety: keyword-recall proxy, refusal accuracy on unanswerable questions, citation presence, and response latency.
+We track: answer-quality proxy, refusal accuracy on unsupported questions, citation presence, and response latency.
 
 ## 3) Technical Approach
 **Data pipeline**  
-Regulatory PDFs are parsed, chunked, and stored in parquet format (`data/processed/chunks.parquet`). Metadata is maintained in `data/metadata/docs.csv`. FAISS index artifacts are stored in `data/artifacts/`.
-
-Quality challenges include heterogeneous document structure and uneven section granularity. The pipeline normalizes chunk schema (`doc_id`, `year`, `page_start`, `page_end`, `chunk_text`) so retrieval remains consistent.
+Regulatory PDFs are split into smaller passages and stored in `data/processed/chunks.parquet`. Document metadata is stored in `data/metadata/docs.csv`.
 
 **Feature engineering**  
-The current version intentionally stays simple: lexical relevance (BM25) + semantic relevance (MiniLM embeddings + FAISS). Hybrid score is a weighted combination of normalized BM25 and vector scores.
+The assistant combines keyword search and meaning-based search. This hybrid approach improves retrieval quality while keeping behavior understandable.
 
-This design was chosen for interpretability and maintainability for a compliance use case, where deterministic retrieval behavior is preferred over heavy heuristic layering.
+**Tech stack used**  
+- Python
+- Pandas, NumPy
+- Streamlit (UI)
+- OpenAI API (`gpt-4o-mini`)
+- Sentence Transformers (`all-MiniLM-L6-v2`)
+- FAISS (vector search)
+- BM25 via `rank-bm25` (keyword search)
+- Poetry (dependency management)
 
 **Model development**  
-Baseline is direct chat completion without retrieval context. The RAG system is compared against this baseline in `eval/run_ab.py`.
-
-The answering model defaults to `gpt-4o-mini` for speed/cost balance, with responses forced to cite source spans. Evaluation scripts compute comparative metrics and generate a markdown report.
+Baseline is direct chat without document retrieval. The assistant is compared against baseline using `eval/run_ab.py` and scored with `eval/score_ab.py`.
 
 **Deployment**  
-The system is served as a Streamlit app (`app/streamlit_app.py`) for internal use. It supports question answering, retrieval inspection, and system/runtime configuration visibility.
-
-Serving pattern is interactive request/response; retrieval and index objects are cached in memory to reduce repeated initialization overhead.
+The app runs through Streamlit (`app/streamlit_app.py`) with interactive Q&A and evidence inspection.
 
 **Monitoring**  
-Current monitoring is evaluation-driven via offline A/B runs (`eval/score_ab.py` + `eval/make_report.py`). Core tracked metrics: recall proxy, refusal behavior, citation presence, latency.
-
-Retraining/reindexing strategy is manual: update corpus, regenerate chunks/index, rerun benchmark, and compare against previous report before release.
+Quality is tracked with offline A/B evaluations and generated reports (`eval/score_ab.py`, `eval/make_report.py`).
 
 ## 4) Results
 **Model performance**  
-- Overall recall proxy: `RAG 0.532` vs `Baseline 0.409`  
+- Overall quality proxy: `RAG 0.532` vs `Baseline 0.409`  
 - RAG win rate by question: `35.0%` (ties `20.0%`)  
 - Refusal accuracy: `RAG 92.5%` vs `Baseline 72.5%`  
 - Average latency: `RAG 6.425s` vs `Baseline 3.166s`
 
 **Business impact**  
-The current system is strongest on groundedness and safety behavior (citations + better refusal on unsupported queries), which is aligned with compliance workflows.
+The current system is strongest on groundedness and safer behavior (citations + better refusal on unsupported questions), which is aligned with compliance workflows.
 
 **Technical learnings**  
-Detailed split analysis shows a key tradeoff: RAG performs better on unanswerable/safety scenarios, while baseline can outperform on some answerable questions. This highlights retrieval quality and context selection as the highest-leverage improvement area.
+RAG performs best on unsupported/safety scenarios. For fully answerable questions, retrieval quality and context selection remain the biggest improvement lever.
 
 ## 5) How to Run
 **Prerequisites**  
@@ -93,35 +93,35 @@ poetry run python eval/make_report.py
 ## 6) Project Structure
 ```text
 snb-rag/
-├── app/
-│   └── streamlit_app.py          # Compliance-facing Streamlit interface
-├── src/
-│   ├── parse_pdf.py              # PDF parsing utilities
-│   ├── chunk.py                  # Chunking pipeline
-│   ├── metadata.py               # Metadata generation/handling
-│   ├── index_embeddings.py       # Embedding + FAISS index build helpers
-│   ├── retrieve_hybrid.py        # Core BM25 + FAISS hybrid retrieval
-│   ├── retrieve.py               # Retrieval helpers
-│   ├── retrieve_vector.py        # Vector-only retrieval helper
-│   └── answer.py                 # Grounded answer generation
-├── data/
-│   ├── raw_pdf/                  # Source regulatory PDFs
-│   ├── processed/                # Processed chunks/features
-│   ├── metadata/                 # docs.csv and related metadata
-│   └── artifacts/                # FAISS index and retrieval artifacts
-├── eval/
-│   ├── questions.csv             # Benchmark dataset
-│   ├── run_ab.py                 # Generate RAG vs baseline outputs
-│   ├── score_ab.py               # Score benchmark metrics
-│   ├── make_report.py            # Produce markdown evaluation report
-│   └── report.md                 # Latest benchmark report
-├── pyproject.toml
-└── README.md
+|- app/
+|  |- streamlit_app.py          # Compliance-facing app
+|- src/
+|  |- parse_pdf.py              # PDF parsing
+|  |- chunk.py                  # Text chunking
+|  |- metadata.py               # Metadata handling
+|  |- index_embeddings.py       # Embedding/index utilities
+|  |- retrieve_hybrid.py        # Hybrid retrieval
+|  |- retrieve.py               # Retrieval helpers
+|  |- retrieve_vector.py        # Vector retrieval helper
+|  |- answer.py                 # Grounded answer generation
+|- data/
+|  |- raw_pdf/                  # Source regulatory PDFs
+|  |- processed/                # Processed chunks
+|  |- metadata/                 # docs.csv and related metadata
+|  |- artifacts/                # FAISS index artifacts
+|- eval/
+|  |- questions.csv             # Benchmark dataset
+|  |- run_ab.py                 # Generate A/B outputs
+|  |- score_ab.py               # Score benchmark metrics
+|  |- make_report.py            # Create markdown report
+|  |- report.md                 # Latest benchmark report
+|- pyproject.toml
+|- README.md
 ```
 
 ## 7) Future Improvements
-- Improve answerable-question performance by refining retrieval ranking and context selection strategy
-- Add a stronger evaluator (LLM-as-judge rubric + confidence intervals) for more rigorous claims
-- Add automated regression checks in CI for benchmark drift across commits
-- Add role-based views and export-ready briefing format for compliance committees
-- Add scheduled reindexing pipeline when new regulatory documents are ingested
+- Improve answerable-question performance by refining retrieval ranking and context selection
+- Add stronger evaluation (LLM-judge rubric + confidence intervals)
+- Add automated benchmark checks in CI before merges
+- Add role-based report views for compliance committees
+- Add scheduled reindexing when new regulatory documents are ingested
