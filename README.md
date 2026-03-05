@@ -1,5 +1,7 @@
 # Banking Regulation Compliance Assistant (RAG) — Basel III & FINMA
 
+**Live demo:** https://your-streamlit-app-url.streamlit.app](https://compliance-rag.streamlit.app/
+
 ## 1) Project Overview
 **What it is**  
 An AI assistant that answers questions about banking regulation and the Basel Framework using official regulatory documents (e.g., Basel Committee standards, supervisory guidelines, and regulatory publications) as its knowledge base.
