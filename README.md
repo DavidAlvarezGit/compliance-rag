@@ -9,12 +9,22 @@ Compliance teams spend significant time verifying that responses are supported b
 
 Unlike a standard ChatGPT-style model that may generate responses without citing a specific source, this system retrieves relevant passages from regulatory documents and bases its answers on them, ensuring traceability and supporting audit requirements.
 
-**Key results**  
-- Evaluated on a 40-question A/B benchmark (`assistant with retrieval` vs `normal chat`)  
-- Higher overall answer-quality proxy: `0.532` vs `0.409`  
-- Better refusal on unsupported questions: `92.5%` vs `72.5%`  
-- Citation presence in responses: `65.0%`  
-- Delivered as a Streamlit app for interactive compliance Q&A
+### Key Results
+
+- **Benchmark evaluation**  
+  Assessed on a 40-question A/B benchmark comparing the retrieval-augmented assistant with a standard chat model.
+
+- **Higher answer reliability**  
+  Achieved a higher answer-quality score (0.532 vs 0.409), indicating more accurate and policy-grounded responses.
+
+- **Better handling of unsupported queries**  
+  Correctly refused questions without supporting evidence 92.5% of the time compared to 72.5% for the standard chat model, reducing the risk of unsupported answers.
+
+- **Improved traceability**  
+  65% of responses included citations to the underlying regulatory documents.
+
+- **Interactive prototype**  
+  Delivered as a Streamlit application enabling compliance teams to query regulatory texts through a structured Q&A interface.
 
 ## 2) Problem Definition
 **Business context**  
