@@ -12,15 +12,22 @@ jobs:
     steps:
       - name: Wake streamlit
         run: |
+          URL="https://compliance-rag.streamlit.app/"
+
           for i in 1 2 3
           do
+            echo "Request $i"
+
             curl \
               --location \
+              --silent \
+              --show-error \
               --max-redirs 20 \
               --retry 5 \
               --retry-all-errors \
-              -H "User-Agent: Mozilla/5.0" \
+              -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
               -H "Accept: text/html" \
-              https://compliance-rag.streamlit.app/ || true
-            sleep 20
+              "$URL" || true
+
+            sleep 25
           done
