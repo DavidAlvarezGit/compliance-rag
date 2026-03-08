@@ -3,18 +3,24 @@ name: KeepAlive
 on:
   schedule:
     - cron: "*/8 * * * *"
+  workflow_dispatch:
 
 jobs:
   keepalive:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Wake app
+      - name: Wake streamlit
         run: |
           for i in 1 2 3
           do
-            curl -L \
+            curl \
+              --location \
+              --max-redirs 20 \
+              --retry 5 \
+              --retry-all-errors \
               -H "User-Agent: Mozilla/5.0" \
-              https://compliance-rag.streamlit.app/
-            sleep 15
+              -H "Accept: text/html" \
+              https://compliance-rag.streamlit.app/ || true
+            sleep 20
           done
