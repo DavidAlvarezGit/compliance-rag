@@ -1,4 +1,4 @@
-name: Ping Streamlit
+name: Keep Streamlit Alive
 
 on:
   schedule:
@@ -9,6 +9,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Curl request
+      - name: First request
         run: |
-          curl https://compliance-rag.streamlit.app/
+          curl -L -H "User-Agent: Mozilla/5.0" https://compliance-rag.streamlit.app/
+
+      - name: Wait
+        run: sleep 20
+
+      - name: Second request
+        run: |
+          curl -L -H "User-Agent: Mozilla/5.0" https://compliance-rag.streamlit.app/
