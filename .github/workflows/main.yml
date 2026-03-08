@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Curl request
         run: |
-          curl https://your-app.streamlit.app/
+          curl https://compliance-rag.streamlit.app/
