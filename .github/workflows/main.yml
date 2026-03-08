@@ -1,21 +1,20 @@
-name: Keep Streamlit Alive
+name: KeepAlive
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/8 * * * *"
 
 jobs:
-  ping:
+  keepalive:
     runs-on: ubuntu-latest
 
     steps:
-      - name: First request
+      - name: Wake app
         run: |
-          curl -L -H "User-Agent: Mozilla/5.0" https://compliance-rag.streamlit.app/
-
-      - name: Wait
-        run: sleep 20
-
-      - name: Second request
-        run: |
-          curl -L -H "User-Agent: Mozilla/5.0" https://compliance-rag.streamlit.app/
+          for i in 1 2 3
+          do
+            curl -L \
+              -H "User-Agent: Mozilla/5.0" \
+              https://compliance-rag.streamlit.app/
+            sleep 15
+          done
