@@ -251,8 +251,8 @@ with st.sidebar:
     st.subheader("Model Controls")
     model = st.text_input("Model", value=DEFAULT_MODEL)
     temperature = st.slider("Temperature", 0.0, 0.5, 0.0, 0.05)
-    max_chunks_for_llm = st.slider("Context Chunks to LLM", 2, 16, 3, 1)
-    max_tokens = st.slider("Max Completion Tokens", 128, 2000, 300, 50)
+    max_chunks_for_llm = st.slider("Context Chunks to LLM", 2, 16, 5, 1)
+    max_tokens = st.slider("Max Completion Tokens", 128, 2000, 500, 50)
 
     st.subheader("Display Options")
     show_context = st.checkbox("Show Retrieved Context", value=True)
