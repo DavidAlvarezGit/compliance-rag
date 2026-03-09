@@ -183,18 +183,13 @@ def generate_answer(
     context = build_context(chunks, max_chunks=max_chunks_for_llm)
     prompt = f"""
 You are a senior banking compliance analyst.
-Audience: compliance officers and risk governance stakeholders.
 Use only the context below.
 If context is insufficient, state this explicitly.
 Do not speculate or add outside knowledge.
-Every factual claim must include a citation:
+Write a short compliance brief for compliance officers.
+Keep it concise and practical.
+Every factual claim must include a citation in this format:
 (Source: DOC_ID pp.X-Y)
-
-Write in a concise, professional tone.
-Output sections:
-1) Executive Summary
-2) Compliance Implications
-3) Evidence and Citations
 
 CONTEXT:
 {context}
@@ -256,8 +251,8 @@ with st.sidebar:
     st.subheader("Model Controls")
     model = st.text_input("Model", value=DEFAULT_MODEL)
     temperature = st.slider("Temperature", 0.0, 0.5, 0.0, 0.05)
-    max_chunks_for_llm = st.slider("Context Chunks to LLM", 2, 16, 5, 1)
-    max_tokens = st.slider("Max Completion Tokens", 128, 2000, 600, 50)
+    max_chunks_for_llm = st.slider("Context Chunks to LLM", 2, 16, 3, 1)
+    max_tokens = st.slider("Max Completion Tokens", 128, 2000, 300, 50)
 
     st.subheader("Display Options")
     show_context = st.checkbox("Show Retrieved Context", value=True)

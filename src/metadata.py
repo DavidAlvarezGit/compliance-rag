@@ -23,9 +23,36 @@ TOPIC_PATTERNS = [
     ("liquidity_risk_management", [r"liquidity management", r"risque de liquidit[ée]", r"gestion du risque de liquidit[ée]"]),
 ]
 
+TOPIC_CODES = {
+    "credit_risk_standardized_approach": "credit-sa",
+    "irb_framework": "irb",
+    "liquidity_coverage_ratio_lcr": "lcr",
+    "net_stable_funding_ratio_nsfr": "nsfr",
+    "leverage_ratio_rules": "leverage",
+    "operational_risk_framework": "op-risk",
+    "capital_requirements_framework": "cap-req",
+    "corporate_governance_internal_controls": "governance",
+    "market_conduct_rules": "conduct",
+    "climate_nature_related_financial_risks": "climate-risk",
+    "liquidity_risk_management": "liquidity-risk",
+    "other": "other",
+}
+
 
 def normalize_text(s: str) -> str:
     return " ".join(s.lower().replace("_", " ").replace("-", " ").split())
+
+
+def slugify_text(s: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+    return re.sub(r"-{2,}", "-", slug)
+
+
+def build_doc_id(topic: str, year: int, title: str) -> str:
+    topic_code = TOPIC_CODES.get(topic, "other")
+    words = [w for w in slugify_text(title).split("-") if w and not re.fullmatch(r"20\d{2}|en|fr", w)]
+    short_title = "-".join(words[:3])
+    return f"{topic_code}-{year}-{short_title}" if short_title else f"{topic_code}-{year}"
 
 
 def sample_pdf_text(pdf_path: Path, max_pages: int = 6) -> str:
@@ -105,7 +132,7 @@ for filename in sorted(RAW_DIR.iterdir()):
 
     docs.append(
         {
-            "doc_id": f"REG_BANK_{topic}_{year}_{filename.stem}",
+            "doc_id": build_doc_id(topic=topic, year=year, title=filename.stem),
             "doc_type": "REG_BANK",
             "topic": topic,
             "year": year,
