@@ -268,7 +268,7 @@ with tab_ask:
         key="example_q1",
     ):
         st.session_state["question_input"] = (
-            "How should trading-related operational risk incidents be escalated and managed?"
+            "What do the sources say about operational risk governance, reporting, and resilience for trading activities?"
         )
     if ex_col2.button(
         "Board Internal Controls",
