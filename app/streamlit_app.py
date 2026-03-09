@@ -55,6 +55,39 @@ def _minmax_norm(x: np.ndarray) -> np.ndarray:
     return (x - xmin) / (xmax - xmin)
 
 
+def short_doc_ref(doc_id: str) -> str:
+    raw = str(doc_id).strip()
+    if not raw:
+        return "doc"
+    if not raw.startswith("REG_BANK_"):
+        return raw
+
+    parts = raw.split("_")
+    year = next((p for p in parts if p.isdigit() and len(p) == 4), "")
+    if year:
+        year_index = parts.index(year)
+        topic_parts = parts[2:year_index]
+    else:
+        topic_parts = parts[2:]
+
+    topic_map = {
+        "capital_requirements_framework": "cap-req",
+        "corporate_governance_internal_controls": "governance",
+        "liquidity_risk_management": "liquidity-risk",
+        "climate_nature_related_financial_risks": "climate-risk",
+        "operational_risk_framework": "op-risk",
+        "market_conduct_rules": "conduct",
+        "credit_risk_standardized_approach": "credit-sa",
+        "irb_framework": "irb",
+        "liquidity_coverage_ratio_lcr": "lcr",
+        "net_stable_funding_ratio_nsfr": "nsfr",
+        "leverage_ratio_rules": "leverage",
+    }
+    topic = "_".join(topic_parts)
+    topic_code = topic_map.get(topic, "doc")
+    return f"{topic_code}-{year}" if year else topic_code
+
+
 @st.cache_resource
 def load_chunks() -> pd.DataFrame:
     df = pd.read_parquet(CHUNKS_PATH).copy()
@@ -167,7 +200,7 @@ def retrieve_candidates(
 def build_context(chunks: List[Chunk], max_chunks: int) -> str:
     parts = []
     for c in chunks[:max_chunks]:
-        parts.append(f"{c.doc_id} pp.{c.page_start}-{c.page_end}:\n{c.chunk_text}")
+        parts.append(f"{short_doc_ref(c.doc_id)} pp.{c.page_start}-{c.page_end}:\n{c.chunk_text}")
     return "\n\n---\n\n".join(parts)
 
 
@@ -316,7 +349,7 @@ with tab_ask:
             if show_context:
                 with st.expander("Retrieved Evidence", expanded=False):
                     for i, c in enumerate(candidates[:max_chunks_for_llm], start=1):
-                        st.markdown(f"**{i}. {c.doc_id} | {c.year} | pp.{c.page_start}-{c.page_end}**")
+                        st.markdown(f"**{i}. {short_doc_ref(c.doc_id)} | {c.year} | pp.{c.page_start}-{c.page_end}**")
                         if show_scores:
                             st.caption(f"hybrid={c.hybrid:.4f} | bm25={c.bm25:.3f} | vec={c.vec:.3f}")
                         st.write(c.chunk_text)
@@ -358,7 +391,7 @@ with tab_inspect:
             [
                 {
                     "rank": rank,
-                    "doc_id": c.doc_id,
+                    "doc_id": short_doc_ref(c.doc_id),
                     "year": c.year,
                     "topic": c.topic,
                     "issue": c.issue,
