@@ -183,13 +183,18 @@ def generate_answer(
     context = build_context(chunks, max_chunks=max_chunks_for_llm)
     prompt = f"""
 You are a senior banking compliance analyst.
+Audience: compliance officers and risk governance stakeholders.
 Use only the context below.
 If context is insufficient, state this explicitly.
 Do not speculate or add outside knowledge.
-Write a short compliance brief for compliance officers.
-Keep it concise and practical.
-Every factual claim must include a citation in this format:
+Every factual claim must include a citation:
 (Source: DOC_ID pp.X-Y)
+
+Write in a concise, professional tone.
+Output sections:
+1) Executive Summary
+2) Compliance Implications
+3) Evidence and Citations
 
 CONTEXT:
 {context}
@@ -252,7 +257,7 @@ with st.sidebar:
     model = st.text_input("Model", value=DEFAULT_MODEL)
     temperature = st.slider("Temperature", 0.0, 0.5, 0.0, 0.05)
     max_chunks_for_llm = st.slider("Context Chunks to LLM", 2, 16, 5, 1)
-    max_tokens = st.slider("Max Completion Tokens", 128, 2000, 500, 50)
+    max_tokens = st.slider("Max Completion Tokens", 128, 2000, 600, 50)
 
     st.subheader("Display Options")
     show_context = st.checkbox("Show Retrieved Context", value=True)
@@ -268,7 +273,7 @@ with tab_ask:
         key="example_q1",
     ):
         st.session_state["question_input"] = (
-            "What do the sources say about operational risk governance, reporting, and resilience for trading activities?"
+            "How should trading-related operational risk incidents be escalated and managed?"
         )
     if ex_col2.button(
         "Board Internal Controls",
