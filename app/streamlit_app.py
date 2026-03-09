@@ -289,7 +289,7 @@ doc_count = int(chunks_df["doc_id"].nunique())
 year_min = int(chunks_df["year"].min()) if len(chunks_df) else 0
 year_max = int(chunks_df["year"].max()) if len(chunks_df) else 0
 
-st.title("Basel III Compliance Assistant")
+st.title("Banking Regulation Compliance Assistant (RAG) — Basel III & FINMA")
 st.caption("Grounded regulatory Q&A for banking compliance and risk stakeholders.")
 
 kpi1, kpi2, kpi3 = st.columns(3)
