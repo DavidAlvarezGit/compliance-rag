@@ -88,6 +88,28 @@ def short_doc_ref(doc_id: str) -> str:
     return f"{topic_code}-{year}" if year else topic_code
 
 
+def source_label(doc_id: str, topic: Optional[str], year: int) -> str:
+    topic_labels = {
+        "capital_requirements_framework": "Basel Capital Requirements Framework",
+        "corporate_governance_internal_controls": "FINMA Corporate Governance Circular",
+        "liquidity_risk_management": "FINMA Liquidity Risk Circular",
+        "climate_nature_related_financial_risks": "FINMA Climate Risk Circular",
+        "operational_risk_framework": "FINMA Operational Risk Circular",
+        "market_conduct_rules": "FINMA Market Conduct Circular",
+        "credit_risk_standardized_approach": "Basel Credit Risk Standardised Approach",
+        "irb_framework": "Basel IRB Framework",
+        "liquidity_coverage_ratio_lcr": "Basel LCR Framework",
+        "net_stable_funding_ratio_nsfr": "Basel NSFR Framework",
+        "leverage_ratio_rules": "Basel Leverage Ratio Framework",
+    }
+    if topic in topic_labels and year:
+        return f"{topic_labels[topic]} ({year})"
+    if topic in topic_labels:
+        return topic_labels[topic]
+    ref = short_doc_ref(doc_id)
+    return f"{ref} ({year})" if year and str(year) not in ref else ref
+
+
 @st.cache_resource
 def load_chunks() -> pd.DataFrame:
     df = pd.read_parquet(CHUNKS_PATH).copy()
@@ -200,7 +222,7 @@ def retrieve_candidates(
 def build_context(chunks: List[Chunk], max_chunks: int) -> str:
     parts = []
     for c in chunks[:max_chunks]:
-        parts.append(f"{short_doc_ref(c.doc_id)} pp.{c.page_start}-{c.page_end}:\n{c.chunk_text}")
+        parts.append(f"{source_label(c.doc_id, c.topic, c.year)} p.{c.page_start}-{c.page_end}:\n{c.chunk_text}")
     return "\n\n---\n\n".join(parts)
 
 
@@ -349,7 +371,7 @@ with tab_ask:
             if show_context:
                 with st.expander("Retrieved Evidence", expanded=False):
                     for i, c in enumerate(candidates[:max_chunks_for_llm], start=1):
-                        st.markdown(f"**{i}. {short_doc_ref(c.doc_id)} | {c.year} | pp.{c.page_start}-{c.page_end}**")
+                        st.markdown(f"**{i}. {source_label(c.doc_id, c.topic, c.year)} | p.{c.page_start}-{c.page_end}**")
                         if show_scores:
                             st.caption(f"hybrid={c.hybrid:.4f} | bm25={c.bm25:.3f} | vec={c.vec:.3f}")
                         st.write(c.chunk_text)
@@ -391,7 +413,7 @@ with tab_inspect:
             [
                 {
                     "rank": rank,
-                    "doc_id": short_doc_ref(c.doc_id),
+                    "doc_id": source_label(c.doc_id, c.topic, c.year),
                     "year": c.year,
                     "topic": c.topic,
                     "issue": c.issue,
