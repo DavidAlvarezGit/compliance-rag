@@ -433,6 +433,32 @@ h3 {
   background: #e8f0fe !important;
   color: var(--ink) !important;
 }
+[data-baseweb="select"] > div {
+  background: #ffffff !important;
+  color: var(--ink) !important;
+}
+[role="listbox"] {
+  background: #ffffff !important;
+  border: 1px solid var(--border) !important;
+}
+[role="option"] {
+  background: #ffffff !important;
+  color: var(--ink) !important;
+}
+[role="option"][aria-selected="true"] {
+  background: #e8f0fe !important;
+  color: var(--ink) !important;
+}
+[role="option"]:hover {
+  background: #f2f6ff !important;
+  color: var(--ink) !important;
+}
+[data-baseweb="popover"] *,
+[data-baseweb="menu"] *,
+ul[role="listbox"] *,
+li[role="option"] * {
+  color: var(--ink) !important;
+}
 button[kind="primary"] {
   background: var(--accent) !important;
   color: #ffffff !important;
