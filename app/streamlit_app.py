@@ -91,8 +91,9 @@ def _minmax_norm(x: np.ndarray) -> np.ndarray:
 
 
 @st.cache_data
-def load_docs() -> pd.DataFrame:
-    df = pd.read_csv(DOCS_PATH).copy()
+def load_docs(path: str, mtime: float) -> pd.DataFrame:
+    del mtime
+    df = pd.read_csv(path).copy()
     expected = {"doc_id", "title", "topic", "language"}
     missing = expected - set(df.columns)
     if missing:
@@ -101,8 +102,9 @@ def load_docs() -> pd.DataFrame:
 
 
 @st.cache_resource
-def load_chunks() -> pd.DataFrame:
-    df = pd.read_parquet(CHUNKS_PATH).copy()
+def load_chunks(path: str, mtime: float) -> pd.DataFrame:
+    del mtime
+    df = pd.read_parquet(path).copy()
     required = {"chunk_text", "doc_id", "page_start", "page_end"}
     missing = required - set(df.columns)
     if missing:
@@ -312,9 +314,9 @@ QUESTION:
 
 st.set_page_config(page_title="Compliance Evidence Assistant", layout="wide")
 
-docs_df = load_docs()
+docs_df = load_docs(DOCS_PATH, Path(DOCS_PATH).stat().st_mtime)
 doc_lookup = build_doc_lookup(docs_df)
-chunks_df = load_chunks()
+chunks_df = load_chunks(CHUNKS_PATH, Path(CHUNKS_PATH).stat().st_mtime)
 bm25 = load_bm25(chunks_df)
 embedder = load_embedder()
 faiss_index = load_faiss()
