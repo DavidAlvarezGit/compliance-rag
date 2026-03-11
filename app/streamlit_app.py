@@ -326,79 +326,61 @@ st.markdown(
     """
 <style>
 :root {
-  --bg: #f3ede3;
-  --panel: rgba(255, 252, 247, 0.96);
-  --ink: #15201c;
-  --muted: #44514b;
-  --accent: #a33d2f;
-  --accent-2: #184f45;
-  --border: rgba(21, 32, 28, 0.14);
-  --soft: #f8f4ed;
+  --bg: #f5f5f5;
+  --panel: #ffffff;
+  --ink: #111111;
+  --muted: #333333;
+  --accent: #0b57d0;
+  --border: #d0d0d0;
+  --soft: #ffffff;
 }
 .stApp {
-  background:
-    radial-gradient(circle at top left, rgba(163,61,47,0.15), transparent 28%),
-    radial-gradient(circle at top right, rgba(24,79,69,0.16), transparent 26%),
-    linear-gradient(180deg, #f7f2ea 0%, #efe7db 100%);
+  background: var(--bg);
   color: var(--ink);
-}
-.stApp, .stApp p, .stApp li, .stApp label, .stApp span, .stApp div {
-  color: var(--ink);
-}
-.stMarkdown, .stMarkdown p, .stMarkdown li {
-  color: var(--ink);
-}
-.stCaption, [data-testid="stCaptionContainer"] {
-  color: var(--muted) !important;
 }
 .main .block-container {
   max-width: 1180px;
-  padding-top: 2.4rem;
-  padding-bottom: 3rem;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
 }
 .hero {
-  background: linear-gradient(135deg, rgba(255,255,255,0.76), rgba(255,248,240,0.9));
+  background: #ffffff;
   border: 1px solid var(--border);
-  border-radius: 28px;
-  padding: 2rem 2rem 1.4rem 2rem;
-  box-shadow: 0 18px 40px rgba(41, 35, 28, 0.08);
-  margin-bottom: 1.4rem;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
 }
 .hero-kicker {
   font-size: 0.8rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   font-weight: 700;
 }
 .hero-title {
-  font-size: 2.6rem;
-  line-height: 1.02;
+  font-size: 2.2rem;
+  line-height: 1.1;
   margin: 0;
   color: var(--ink);
   font-weight: 800;
 }
 .hero-copy {
-  margin-top: 0.9rem;
-  max-width: 720px;
+  margin-top: 0.8rem;
+  max-width: 760px;
   color: var(--muted);
   font-size: 1rem;
 }
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 22px;
-  padding: 1.2rem 1.2rem 0.8rem 1.2rem;
-  box-shadow: 0 16px 32px rgba(20, 20, 20, 0.05);
-}
-.panel h1, .panel h2, .panel h3, .panel h4, .panel p, .panel label {
-  color: var(--ink);
+  border-radius: 16px;
+  padding: 1rem;
 }
 .source-card {
-  background: rgba(255,255,255,0.92);
+  background: #fafafa;
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 12px;
   padding: 0.9rem 1rem;
   margin-bottom: 0.8rem;
 }
@@ -413,15 +395,25 @@ st.markdown(
 }
 .source-body {
   margin-top: 0.7rem;
-  color: #24312d;
+  color: var(--ink);
   font-size: 0.95rem;
 }
-[data-testid="stSidebar"] * {
-  color: var(--ink) !important;
-}
 [data-testid="stSidebar"] {
-  background: rgba(247,242,234,0.92);
+  background: #f0f0f0;
   border-left: 1px solid var(--border);
+}
+[data-testid="stSidebar"] *,
+.stApp *,
+.stMarkdown *,
+label,
+p,
+li,
+span,
+div,
+h1,
+h2,
+h3 {
+  color: var(--ink) !important;
 }
 [data-testid="stTextArea"] textarea,
 [data-testid="stTextInput"] input,
@@ -430,37 +422,45 @@ st.markdown(
   background: var(--soft) !important;
   color: var(--ink) !important;
   border-color: var(--border) !important;
+  opacity: 1 !important;
 }
 [data-testid="stTextArea"] textarea::placeholder,
 [data-testid="stTextInput"] input::placeholder {
-  color: var(--muted) !important;
+  color: #666666 !important;
   opacity: 1 !important;
 }
 [data-baseweb="tag"] {
-  background: rgba(24, 79, 69, 0.12) !important;
+  background: #e8f0fe !important;
   color: var(--ink) !important;
 }
 button[kind="primary"] {
-  background: linear-gradient(135deg, #a33d2f, #7b2a20) !important;
-  color: #fff7f2 !important;
-  border: none !important;
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--accent) !important;
 }
 button[kind="secondary"] {
-  background: rgba(255,255,255,0.88) !important;
+  background: #ffffff !important;
   color: var(--ink) !important;
   border: 1px solid var(--border) !important;
 }
+[data-testid="stButton"] button {
+  opacity: 1 !important;
+}
 [data-testid="stTabs"] button {
-  color: var(--muted) !important;
+  color: #444444 !important;
 }
 [data-testid="stTabs"] button[aria-selected="true"] {
   color: var(--ink) !important;
 }
 [data-testid="stDataFrame"] * {
   color: var(--ink) !important;
+  opacity: 1 !important;
 }
 [data-testid="stAlertContainer"] * {
   color: var(--ink) !important;
+}
+[data-testid="stCaptionContainer"] {
+  color: #555555 !important;
 }
 </style>
 """,
