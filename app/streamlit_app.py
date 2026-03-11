@@ -326,13 +326,14 @@ st.markdown(
     """
 <style>
 :root {
-  --bg: #f4efe6;
-  --panel: rgba(255,255,255,0.78);
-  --ink: #18211e;
-  --muted: #5b665f;
+  --bg: #f3ede3;
+  --panel: rgba(255, 252, 247, 0.96);
+  --ink: #15201c;
+  --muted: #44514b;
   --accent: #a33d2f;
   --accent-2: #184f45;
-  --border: rgba(24,33,30,0.10);
+  --border: rgba(21, 32, 28, 0.14);
+  --soft: #f8f4ed;
 }
 .stApp {
   background:
@@ -340,6 +341,15 @@ st.markdown(
     radial-gradient(circle at top right, rgba(24,79,69,0.16), transparent 26%),
     linear-gradient(180deg, #f7f2ea 0%, #efe7db 100%);
   color: var(--ink);
+}
+.stApp, .stApp p, .stApp li, .stApp label, .stApp span, .stApp div {
+  color: var(--ink);
+}
+.stMarkdown, .stMarkdown p, .stMarkdown li {
+  color: var(--ink);
+}
+.stCaption, [data-testid="stCaptionContainer"] {
+  color: var(--muted) !important;
 }
 .main .block-container {
   max-width: 1180px;
@@ -382,8 +392,11 @@ st.markdown(
   padding: 1.2rem 1.2rem 0.8rem 1.2rem;
   box-shadow: 0 16px 32px rgba(20, 20, 20, 0.05);
 }
+.panel h1, .panel h2, .panel h3, .panel h4, .panel p, .panel label {
+  color: var(--ink);
+}
 .source-card {
-  background: rgba(255,255,255,0.72);
+  background: rgba(255,255,255,0.92);
   border: 1px solid var(--border);
   border-radius: 18px;
   padding: 0.9rem 1rem;
@@ -403,9 +416,51 @@ st.markdown(
   color: #24312d;
   font-size: 0.95rem;
 }
+[data-testid="stSidebar"] * {
+  color: var(--ink) !important;
+}
 [data-testid="stSidebar"] {
   background: rgba(247,242,234,0.92);
   border-left: 1px solid var(--border);
+}
+[data-testid="stTextArea"] textarea,
+[data-testid="stTextInput"] input,
+[data-testid="stMultiSelect"] div[data-baseweb="select"],
+[data-testid="stSelectbox"] div[data-baseweb="select"] {
+  background: var(--soft) !important;
+  color: var(--ink) !important;
+  border-color: var(--border) !important;
+}
+[data-testid="stTextArea"] textarea::placeholder,
+[data-testid="stTextInput"] input::placeholder {
+  color: var(--muted) !important;
+  opacity: 1 !important;
+}
+[data-baseweb="tag"] {
+  background: rgba(24, 79, 69, 0.12) !important;
+  color: var(--ink) !important;
+}
+button[kind="primary"] {
+  background: linear-gradient(135deg, #a33d2f, #7b2a20) !important;
+  color: #fff7f2 !important;
+  border: none !important;
+}
+button[kind="secondary"] {
+  background: rgba(255,255,255,0.88) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border) !important;
+}
+[data-testid="stTabs"] button {
+  color: var(--muted) !important;
+}
+[data-testid="stTabs"] button[aria-selected="true"] {
+  color: var(--ink) !important;
+}
+[data-testid="stDataFrame"] * {
+  color: var(--ink) !important;
+}
+[data-testid="stAlertContainer"] * {
+  color: var(--ink) !important;
 }
 </style>
 """,
