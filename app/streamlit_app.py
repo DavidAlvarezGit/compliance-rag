@@ -511,6 +511,22 @@ button[kind="secondary"] {
 [data-testid="stCaptionContainer"] {
   color: #555555 !important;
 }
+[data-baseweb="slider"] * {
+  color: #111111 !important;
+}
+[data-baseweb="slider"] [role="slider"] {
+  background: #0b57d0 !important;
+  border-color: #0b57d0 !important;
+  box-shadow: 0 0 0 2px #ffffff !important;
+}
+[data-baseweb="slider"] > div > div:first-child,
+[data-baseweb="slider"] > div > div:first-child > div {
+  background: #d0d0d0 !important;
+}
+[data-baseweb="slider"] > div > div:nth-child(2),
+[data-baseweb="slider"] > div > div:nth-child(2) > div {
+  background: #0b57d0 !important;
+}
 [data-testid="stExpander"] {
   background: #ffffff !important;
   border: 1px solid var(--border) !important;
