@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import re
@@ -47,7 +47,7 @@ TOPIC_LABELS = {
 EXAMPLE_QUESTIONS = [
     "What governance responsibilities does the board have for internal controls?",
     "How should trading-related operational risk incidents be escalated and managed?",
-    "Quelles sont les obligations principales en matière de risque de liquidité ?",
+    "Quelles sont les obligations principales en matiere de risque de liquidite ?",
     "What does the current corpus say about climate and nature-related financial risk governance?",
 ]
 
@@ -403,7 +403,6 @@ st.markdown(
   border-left: 1px solid var(--border);
 }
 [data-testid="stSidebar"] *,
-.stApp *,
 .stMarkdown *,
 label,
 p,
@@ -511,6 +510,20 @@ button[kind="secondary"] {
 }
 [data-testid="stCaptionContainer"] {
   color: #555555 !important;
+}
+[data-testid="stExpander"] {
+  background: #ffffff !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+}
+[data-testid="stExpander"] details,
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary *,
+[data-testid="stExpanderDetails"],
+[data-testid="stExpanderDetails"] * {
+  background: #ffffff !important;
+  color: #111111 !important;
+  opacity: 1 !important;
 }
 </style>
 """,
@@ -661,7 +674,7 @@ with right_col:
                 f"""
 <div class="source-card">
   <div class="source-title">{title}</div>
-  <div class="source-meta">{topic_label} · pages {chunk.page_start}-{chunk.page_end}</div>
+  <div class="source-meta">{topic_label} | pages {chunk.page_start}-{chunk.page_end}</div>
   <div class="source-body">{chunk.chunk_text[:420]}{'...' if len(chunk.chunk_text) > 420 else ''}</div>
 </div>
 """,
@@ -684,11 +697,30 @@ with st.expander("Operations and Document Register", expanded=False):
 - Evidence packing: paragraph-based chunking with overlap
 """.strip()
     )
-    st.dataframe(
-        docs_df[["title", "topic", "language"]].rename(
-            columns={"title": "Source", "topic": "Topic", "language": "Language"}
-        ),
-        width="stretch",
-        hide_index=True,
-        height=360,
+    register_df = docs_df[["title", "topic", "language"]].copy()
+    register_df["topic"] = register_df["topic"].map(
+        lambda value: TOPIC_LABELS.get(value, str(value).replace("_", " ").title())
     )
+    french_df = register_df[register_df["language"].astype(str).str.upper() == "FR"].sort_values("title")
+    english_df = register_df[register_df["language"].astype(str).str.upper() == "EN"].sort_values("title")
+
+    st.caption(
+        f"Sources loaded: {len(register_df)} total | {len(french_df)} French | {len(english_df)} English"
+    )
+    fr_col, en_col = st.columns(2, gap="large")
+    with fr_col:
+        st.markdown("#### French Sources")
+        if french_df.empty:
+            st.write("No French sources loaded.")
+        else:
+            for row in french_df.itertuples(index=False):
+                st.markdown(f"- {row.topic}: {row.title}")
+    with en_col:
+        st.markdown("#### English Sources")
+        if english_df.empty:
+            st.write("No English sources loaded.")
+        else:
+            for row in english_df.itertuples(index=False):
+                st.markdown(f"- {row.topic}: {row.title}")
+
+
