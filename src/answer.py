@@ -8,6 +8,8 @@ from openai import OpenAI
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
 
 def get_client():
     api_key = os.getenv("OPENAI_API_KEY")
@@ -35,7 +37,7 @@ def answer_question(query):
 
     results = hybrid_search(query, top_k=8)
     if results.empty:
-        return "Les sources fournies ne permettent pas de repondre avec certitude."
+        return "We cannot answer with current sources."
 
     context = build_context(results)
 
@@ -44,6 +46,7 @@ You are a professional banking regulation analyst specialized in the Basel III f
 
 Your task:
 - Answer strictly using ONLY the provided sources.
+- Answer in the same language as the user's question.
 - If the sources are insufficient, say exactly:
   "Les sources fournies ne permettent pas de repondre avec certitude."
 - Do NOT use outside knowledge.
@@ -72,9 +75,16 @@ Sources:
 """
 
     response = get_client().chat.completions.create(
-        model="gpt-4o-mini",
+        model=OPENAI_MODEL,
         messages=[
-            {"role": "system", "content": "You are a rigorous banking regulation analyst. You must never hallucinate."},
+            {
+                "role": "system",
+                "content": (
+                    "You are a rigorous banking regulation analyst. "
+                    "You must never hallucinate. "
+                    "Always answer in the same language as the user's question."
+                ),
+            },
             {"role": "user", "content": prompt},
         ],
         temperature=0.0,

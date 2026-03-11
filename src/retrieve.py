@@ -1,4 +1,7 @@
 from pathlib import Path
+import re
+import unicodedata
+
 import pandas as pd
 from rank_bm25 import BM25Okapi
 import numpy as np
@@ -8,9 +11,11 @@ CHUNKS_PATH = BASE_DIR / "data" / "processed" / "chunks.parquet"
 
 df = pd.read_parquet(CHUNKS_PATH)
 
-# Tokenize simply by whitespace (good enough for MVP)
 def tokenize(text):
-    return text.lower().split()
+    normalized = unicodedata.normalize("NFKD", str(text).lower())
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.replace("’", "'")
+    return re.findall(r"[a-z0-9]+", normalized)
 
 corpus = df["chunk_text"].tolist()
 tokenized_corpus = [tokenize(doc) for doc in corpus]

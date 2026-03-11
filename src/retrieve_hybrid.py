@@ -1,8 +1,12 @@
+import os
 from pathlib import Path
+import re
+import unicodedata
 
 import faiss
 import numpy as np
 import pandas as pd
+from dotenv import load_dotenv
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer
 
@@ -12,6 +16,12 @@ from sentence_transformers import SentenceTransformer
 BASE_DIR = Path(__file__).resolve().parent.parent
 CHUNKS_PATH = BASE_DIR / "data" / "processed" / "chunks.parquet"
 ARTIFACT_DIR = BASE_DIR / "data" / "artifacts"
+load_dotenv(BASE_DIR / ".env")
+
+EMBEDDING_MODEL = os.getenv(
+    "EMBEDDING_MODEL",
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+)
 
 df = pd.read_parquet(CHUNKS_PATH)
 
@@ -20,7 +30,10 @@ df = pd.read_parquet(CHUNKS_PATH)
 # BM25 Setup (global for speed)
 # ------------------------------------------------
 def tokenize(text):
-    return str(text).lower().split()
+    normalized = unicodedata.normalize("NFKD", str(text).lower())
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.replace("’", "'")
+    return re.findall(r"[a-z0-9]+", normalized)
 
 
 corpus = df["chunk_text"].tolist()
@@ -32,7 +45,7 @@ bm25 = BM25Okapi(tokenized_corpus)
 # Vector Setup (global for speed)
 # ------------------------------------------------
 index = faiss.read_index(str(ARTIFACT_DIR / "faiss.index"))
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+model = SentenceTransformer(EMBEDDING_MODEL)
 
 
 # ------------------------------------------------

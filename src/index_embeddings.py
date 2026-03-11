@@ -1,17 +1,26 @@
+import os
 from pathlib import Path
-import pandas as pd
-import numpy as np
+
 import faiss
+import numpy as np
+import pandas as pd
+from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 CHUNKS_PATH = BASE_DIR / "data" / "processed" / "chunks.parquet"
 OUTPUT_DIR = BASE_DIR / "data" / "artifacts"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+load_dotenv(BASE_DIR / ".env")
+
+EMBEDDING_MODEL = os.getenv(
+    "EMBEDDING_MODEL",
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+)
 
 df = pd.read_parquet(CHUNKS_PATH)
 
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+model = SentenceTransformer(EMBEDDING_MODEL)
 
 texts = df["chunk_text"].tolist()
 
@@ -28,4 +37,4 @@ faiss.write_index(index, str(OUTPUT_DIR / "faiss.index"))
 
 df.to_parquet(OUTPUT_DIR / "embedding_metadata.parquet", index=False)
 
-print("Vector index saved.")
+print(f"Vector index saved with embedding model: {EMBEDDING_MODEL}")
