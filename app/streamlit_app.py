@@ -168,6 +168,22 @@ def source_title(doc_lookup: dict[str, dict[str, str]], doc_id: str, topic: Opti
     return doc_id
 
 
+def render_register_table(df: pd.DataFrame) -> str:
+    rows = []
+    for row in df.itertuples(index=False):
+        rows.append(f"<tr><td>{row.title}</td><td>{row.topic}</td></tr>")
+    return """
+<table class="register-table">
+  <thead>
+    <tr><th>Source</th><th>Topic</th></tr>
+  </thead>
+  <tbody>
+    {rows}
+  </tbody>
+</table>
+""".strip().format(rows="".join(rows))
+
+
 def retrieve_candidates(
     query: str,
     chunks_df: pd.DataFrame,
@@ -399,6 +415,25 @@ st.markdown(
   margin-top: 0.7rem;
   color: var(--ink);
   font-size: 0.95rem;
+}
+.register-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.35rem;
+}
+.register-table th,
+.register-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.55rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+  color: #111111;
+}
+.register-table th {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #444444;
 }
 [data-testid="stSidebar"] {
   background: #f0f0f0;
@@ -682,20 +717,12 @@ with st.expander("Operations and Document Register", expanded=False):
         if french_df.empty:
             st.write("No French sources loaded.")
         else:
-            st.table(
-                french_df.rename(columns={"title": "Source", "topic": "Topic"})[
-                    ["Source", "Topic"]
-                ]
-            )
+            st.markdown(render_register_table(french_df), unsafe_allow_html=True)
     with en_col:
         st.markdown("#### English Sources")
         if english_df.empty:
             st.write("No English sources loaded.")
         else:
-            st.table(
-                english_df.rename(columns={"title": "Source", "topic": "Topic"})[
-                    ["Source", "Topic"]
-                ]
-            )
+            st.markdown(render_register_table(english_df), unsafe_allow_html=True)
 
 
