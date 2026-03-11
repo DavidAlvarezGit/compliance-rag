@@ -582,127 +582,78 @@ with st.sidebar:
         temperature = st.slider("Temperature", 0.0, 0.5, 0.0, 0.05)
         max_tokens = st.slider("Max completion tokens", 256, 2000, 900, 50)
 
-left_col, right_col = st.columns([1.65, 1.0], gap="large")
+st.markdown('<div class="panel">', unsafe_allow_html=True)
+st.subheader("Ask a question")
+example_cols = st.columns(len(EXAMPLE_QUESTIONS))
+for idx, question in enumerate(EXAMPLE_QUESTIONS):
+    if example_cols[idx].button(question, key=f"example_{idx}", use_container_width=True):
+        st.session_state["question_input"] = question
 
-with left_col:
-    st.markdown('<div class="panel">', unsafe_allow_html=True)
-    st.subheader("Ask a question")
-    example_cols = st.columns(len(EXAMPLE_QUESTIONS))
-    for idx, question in enumerate(EXAMPLE_QUESTIONS):
-        if example_cols[idx].button(question, key=f"example_{idx}", use_container_width=True):
-            st.session_state["question_input"] = question
+with st.form("ask_form", clear_on_submit=False):
+    query = st.text_area(
+        "Question",
+        height=150,
+        key="question_input",
+        placeholder="Example: What are the current internal control responsibilities of the board, and how should evidence be documented?",
+        label_visibility="collapsed",
+    )
+    submitted = st.form_submit_button("Generate Answer", type="primary", use_container_width=True)
 
-    with st.form("ask_form", clear_on_submit=False):
-        query = st.text_area(
-            "Question",
-            height=150,
-            key="question_input",
-            placeholder="Example: What are the current internal control responsibilities of the board, and how should evidence be documented?",
-            label_visibility="collapsed",
-        )
-        submitted = st.form_submit_button("Generate Answer", type="primary", use_container_width=True)
-
-    if submitted:
-        if not query.strip():
-            st.warning("Enter a regulatory or compliance question to continue.")
-        else:
-            allowed_topics = set(topic_filter)
-            allowed_languages = set(language_filter)
-            retrieval_started = time.time()
-            try:
-                with st.spinner("Retrieving evidence..."):
-                    candidates = retrieve_candidates(
-                        query=query.strip(),
-                        chunks_df=chunks_df,
-                        bm25=bm25,
-                        embedder=embedder,
-                        index=faiss_index,
-                        bm25_k=int(bm25_k),
-                        vec_k=int(vec_k),
-                        w_bm25=float(w_bm25),
-                        w_vec=float(1.0 - w_bm25),
-                        allowed_topics=allowed_topics,
-                        allowed_languages=allowed_languages,
-                        max_chunks_per_doc=int(max_chunks_per_doc),
-                    )
-                retrieval_latency = time.time() - retrieval_started
-            except Exception as exc:
-                st.error(f"Retrieval failed: {exc}")
-                candidates = []
-                retrieval_latency = 0.0
-
-            if not candidates:
-                st.warning("No supporting evidence was found with the current filters.")
-            else:
-                try:
-                    with st.spinner("Drafting answer..."):
-                        answer = generate_answer(
-                            client=load_openai_client(),
-                            model=model.strip(),
-                            query=query.strip(),
-                            chunks=candidates,
-                            doc_lookup=doc_lookup,
-                            temperature=float(temperature),
-                            max_chunks_for_llm=int(max_chunks_for_llm),
-                            max_tokens=int(max_tokens),
-                        )
-                except Exception as exc:
-                    st.error(f"Answer generation failed: {exc}")
-                    answer = ""
-
-                if answer:
-                    st.caption(
-                        f"Prepared from {min(len(candidates), int(max_chunks_for_llm))} supporting passages in {retrieval_latency:.2f}s retrieval time."
-                    )
-                    st.markdown("### Compliance Response")
-                    st.write(answer)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-with right_col:
-    st.markdown('<div class="panel">', unsafe_allow_html=True)
-    st.subheader("Evidence")
-    st.caption("Supporting excerpts are grouped by source and pages. Raw document identifiers are intentionally hidden from the primary workflow.")
-
-    preview_query = st.session_state.get("question_input", "").strip()
-    if preview_query:
-        preview_candidates = retrieve_candidates(
-            query=preview_query,
-            chunks_df=chunks_df,
-            bm25=bm25,
-            embedder=embedder,
-            index=faiss_index,
-            bm25_k=int(locals().get("bm25_k", 40)),
-            vec_k=int(locals().get("vec_k", 40)),
-            w_bm25=float(locals().get("w_bm25", 0.45)),
-            w_vec=float(1.0 - float(locals().get("w_bm25", 0.45))),
-            allowed_topics=set(locals().get("topic_filter", [])),
-            allowed_languages=set(locals().get("language_filter", [])),
-            max_chunks_per_doc=int(locals().get("max_chunks_per_doc", 2)),
-        )
+if submitted:
+    if not query.strip():
+        st.warning("Enter a regulatory or compliance question to continue.")
     else:
-        preview_candidates = []
-
-    if show_sources and preview_candidates:
-        for chunk in preview_candidates[: max_chunks_for_llm if "max_chunks_for_llm" in locals() else 6]:
-            title = source_title(doc_lookup, chunk.doc_id, chunk.topic)
-            topic_label = TOPIC_LABELS.get(chunk.topic or "other", "Other")
-            st.markdown(
-                f"""
-<div class="source-card">
-  <div class="source-title">{title}</div>
-  <div class="source-meta">{topic_label} | pages {chunk.page_start}-{chunk.page_end}</div>
-  <div class="source-body">{chunk.chunk_text[:420]}{'...' if len(chunk.chunk_text) > 420 else ''}</div>
-</div>
-""",
-                unsafe_allow_html=True,
-            )
-            if show_scores:
-                st.caption(
-                    f"hybrid={chunk.hybrid:.4f} | keyword={chunk.bm25:.3f} | vector={chunk.vec:.3f}"
+        allowed_topics = set(topic_filter)
+        allowed_languages = set(language_filter)
+        retrieval_started = time.time()
+        try:
+            with st.spinner("Retrieving evidence..."):
+                candidates = retrieve_candidates(
+                    query=query.strip(),
+                    chunks_df=chunks_df,
+                    bm25=bm25,
+                    embedder=embedder,
+                    index=faiss_index,
+                    bm25_k=int(bm25_k),
+                    vec_k=int(vec_k),
+                    w_bm25=float(w_bm25),
+                    w_vec=float(1.0 - w_bm25),
+                    allowed_topics=allowed_topics,
+                    allowed_languages=allowed_languages,
+                    max_chunks_per_doc=int(max_chunks_per_doc),
                 )
-    else:
-        st.info("Enter a question to preview the supporting evidence that will be used.")
-    st.markdown("</div>", unsafe_allow_html=True)
+            retrieval_latency = time.time() - retrieval_started
+        except Exception as exc:
+            st.error(f"Retrieval failed: {exc}")
+            candidates = []
+            retrieval_latency = 0.0
+
+        if not candidates:
+            st.warning("No supporting evidence was found with the current filters.")
+        else:
+            try:
+                with st.spinner("Drafting answer..."):
+                    answer = generate_answer(
+                        client=load_openai_client(),
+                        model=model.strip(),
+                        query=query.strip(),
+                        chunks=candidates,
+                        doc_lookup=doc_lookup,
+                        temperature=float(temperature),
+                        max_chunks_for_llm=int(max_chunks_for_llm),
+                        max_tokens=int(max_tokens),
+                    )
+            except Exception as exc:
+                st.error(f"Answer generation failed: {exc}")
+                answer = ""
+
+            if answer:
+                st.caption(
+                    f"Prepared from {min(len(candidates), int(max_chunks_for_llm))} supporting passages in {retrieval_latency:.2f}s retrieval time."
+                )
+                st.markdown("### Compliance Response")
+                st.write(answer)
+st.markdown("</div>", unsafe_allow_html=True)
 
 with st.expander("Operations and Document Register", expanded=False):
     st.markdown(
@@ -729,14 +680,20 @@ with st.expander("Operations and Document Register", expanded=False):
         if french_df.empty:
             st.write("No French sources loaded.")
         else:
-            for row in french_df.itertuples(index=False):
-                st.markdown(f"- {row.topic}: {row.title}")
+            st.table(
+                french_df.rename(columns={"title": "Source", "topic": "Topic"})[
+                    ["Source", "Topic"]
+                ]
+            )
     with en_col:
         st.markdown("#### English Sources")
         if english_df.empty:
             st.write("No English sources loaded.")
         else:
-            for row in english_df.itertuples(index=False):
-                st.markdown(f"- {row.topic}: {row.title}")
+            st.table(
+                english_df.rename(columns={"title": "Source", "topic": "Topic"})[
+                    ["Source", "Topic"]
+                ]
+            )
 
 
