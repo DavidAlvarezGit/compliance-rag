@@ -424,6 +424,28 @@ h3 {
   border-color: var(--border) !important;
   opacity: 1 !important;
 }
+[data-testid="stMultiSelect"] *,
+[data-testid="stSelectbox"] *,
+[data-baseweb="select"] *,
+[data-baseweb="popover"] *,
+[data-baseweb="menu"] * {
+  color: #111111 !important;
+}
+[data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
+[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+[data-baseweb="select"] > div,
+[data-baseweb="select"] > div > div {
+  background: #ffffff !important;
+  color: #111111 !important;
+  opacity: 1 !important;
+}
+[data-baseweb="select"] input {
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+}
+[data-baseweb="select"] svg {
+  fill: #111111 !important;
+}
 [data-testid="stTextArea"] textarea::placeholder,
 [data-testid="stTextInput"] input::placeholder {
   color: #666666 !important;
@@ -440,24 +462,26 @@ h3 {
 [role="listbox"] {
   background: #ffffff !important;
   border: 1px solid var(--border) !important;
+  color: #111111 !important;
+  opacity: 1 !important;
 }
 [role="option"] {
   background: #ffffff !important;
-  color: var(--ink) !important;
+  color: #111111 !important;
+  opacity: 1 !important;
 }
 [role="option"][aria-selected="true"] {
   background: #e8f0fe !important;
-  color: var(--ink) !important;
+  color: #111111 !important;
 }
 [role="option"]:hover {
   background: #f2f6ff !important;
-  color: var(--ink) !important;
+  color: #111111 !important;
 }
-[data-baseweb="popover"] *,
-[data-baseweb="menu"] *,
 ul[role="listbox"] *,
 li[role="option"] * {
-  color: var(--ink) !important;
+  color: #111111 !important;
+  opacity: 1 !important;
 }
 button[kind="primary"] {
   background: var(--accent) !important;
@@ -500,7 +524,6 @@ st.markdown(
   <h1 class="hero-title">Compliance Evidence Assistant</h1>
   <div class="hero-copy">
     Ask for a regulatory answer, and the assistant will draft a concise response using only retrieved source passages.
-    This interface is optimized for evidence-first review rather than demo metrics.
   </div>
 </div>
 """,
