@@ -4,9 +4,9 @@
 
 ## 1. Project Overview
 
-This project is a banking regulation assistant that answers questions using approved Basel and FINMA documents, not open-ended model memory.
+This project is a banking regulation assistant that answers questions using approved Basel and FINMA documents.
 
-That matters because a normal LLM can sound convincing without showing evidence. This system is built for a higher bar: it retrieves the right source passages first, answers from those passages, and shows where the answer came from. The result is more useful for compliance work, easier to review, and safer to trust.
+That matters because a normal LLM can sound convincing without showing evidence. This system is built for better accountability: it retrieves the right source passages first, answers from those passages, and shows where the answer came from. The result is more useful for compliance work, easier to review, and safer to trust.
 
 Compared with a normal LLM, the assistant is designed to:
 - answer from a fixed regulatory corpus
@@ -24,15 +24,15 @@ The solution here is a grounded RAG workflow: curate the document set, retrieve 
 
 ## 3. Technical Approach
 
-The architecture is intentionally simple. A curated registry in `data/metadata/docs.csv` defines the approved sources. The pipeline parses PDFs, turns them into paragraph-based chunks, and builds both keyword and embedding-based search indexes.
+A registry in data/metadata/docs.csv defines the approved regulatory sources. The pipeline extracts text from the PDFs, splits it into smaller passage-level chunks, and indexes those passages for both keyword search and semantic retrieval.
 
-At question time, the system combines keyword search with embedding-based semantic search, selects the most relevant passages, and sends only that evidence to the answer model. This is the key difference from a normal LLM: the answer is built from retrieved regulatory text, not from open-ended model memory.
+When a user asks a question, the system finds the most relevant passages using a combination of keyword matching and embedding-based search, then sends only that evidence to the model. That is the main advantage over a normal LLM: answers are grounded in retrieved source documents rather than generated from general model memory.
 
-The Streamlit app exposes the answer, the retrieved excerpts, and a few controls for inspection. It is a demo deployment, but it already shows the workflow clearly and credibly.
+The Streamlit app shows the answer, the retrieved excerpts, and a few controls for inspection. It is a demo deployment, but it already shows the workflow clearly.
 
 ## 4. Results
 
-What we can clearly show today is that the assistant is live, works on a bilingual corpus of 22 curated regulatory documents, and produces evidence-backed answers instead of unsupported free-form responses.
+What we can clearly show today is that the app is live, works on a bilingual corpus of 22  regulatory documents, and produces evidence-backed answers instead of unsupported free-form responses.
 
 The project also includes a reproducible A/B evaluation workflow in `eval/`:
 - `run_ab.py` generates answers for both the RAG pipeline and a non-retrieval baseline
