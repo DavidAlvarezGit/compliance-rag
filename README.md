@@ -24,11 +24,11 @@ The solution here is a grounded RAG workflow: curate the document set, retrieve 
 
 ## 3. Technical Approach
 
-A registry in data/metadata/docs.csv defines the approved regulatory sources. The pipeline extracts text from the PDFs, splits it into smaller passage-level chunks, and indexes those passages for both keyword search and semantic retrieval.
+A  registry in data/metadata/docs.csv defines the regulatory text and its metadata. The pipeline parses the source PDFs, cleans the text, splits it into overlapping paragraph-level chunks, and uses those chunks as the main retrieval units. It then builds two search layers: BM25 for keyword matching and a vector index for semantic search using multilingual embeddings.
 
-When a user asks a question, the system finds the most relevant passages using a combination of keyword matching and embedding-based search, then sends only that evidence to the model. That is the main advantage over a normal LLM: answers are grounded in retrieved source documents rather than generated from general model memory.
+When a user asks a question, the system runs both keyword search and embedding-based search, combines the results, and selects the most relevant chunks. Only those retrieved passages are sent to the answer model. This is the main difference from a normal LLM workflow: the answer is based on a limited set of approved source texts instead of relying on the model’s general memory.
 
-The Streamlit app shows the answer, the retrieved excerpts, and a few controls for inspection. It is a demo deployment, but it already shows the workflow clearly.
+The Streamlit app shows the final answer, the supporting excerpts, and a few retrieval controls so the workflow can be inspected. It is still a demo deployment, but it already makes the full process clear and easy to understand.
 
 ## 4. Results
 
