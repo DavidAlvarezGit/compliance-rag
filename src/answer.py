@@ -56,10 +56,12 @@ Your task:
 Output format (strictly follow this structure):
 
 REPONSE SYNTHETIQUE:
-(3-6 bullet points maximum, concise and factual)
+(4-7 bullet points maximum, clear and factual)
 
 ANALYSE DETAILLEE:
-(Short structured paragraphs explaining each risk)
+(2-4 short paragraphs that explain the main points, obligations, limits, or conditions in practical terms)
+
+Keep the answer moderately detailed: more complete than a short summary, but avoid long reports and repetition.
 
 Each factual statement MUST include a citation in this format:
 (Source: DOC_ID pp.X-Y)
@@ -88,7 +90,7 @@ Sources:
             {"role": "user", "content": prompt},
         ],
         temperature=0.0,
-        max_completion_tokens=500,
+        max_completion_tokens=800,
     )
 
     return response.choices[0].message.content

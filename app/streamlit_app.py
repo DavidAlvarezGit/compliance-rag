@@ -306,7 +306,8 @@ Do not add outside knowledge.
 Every factual claim must include a citation in this format:
 (Source: TITLE pp.X-Y)
 
-Write in a concise, professional tone.
+Write in a concise but sufficiently informative professional tone.
+Aim for a moderate-length answer: fuller than a brief summary, but not exhaustive.
 Output sections:
 1) Executive Summary
 2) Compliance Implications
@@ -617,7 +618,7 @@ with st.sidebar:
 
     with st.expander("Advanced Generation", expanded=False):
         temperature = st.slider("Temperature", 0.0, 0.5, 0.0, 0.05)
-        max_tokens = st.slider("Max completion tokens", 256, 2000, 900, 50)
+        max_tokens = st.slider("Max completion tokens", 256, 2000, 1200, 50)
 
 st.markdown('<div class="panel">', unsafe_allow_html=True)
 st.subheader("Ask a question")
