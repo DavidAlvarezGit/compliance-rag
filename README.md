@@ -24,22 +24,22 @@ The solution here is a grounded RAG workflow: curate the document set, retrieve 
 
 ## 3. Technical Approach
 
-The architecture is intentionally simple. A curated registry in `data/metadata/docs.csv` defines the approved sources. The pipeline parses PDFs, turns them into paragraph-based chunks, and builds a search index for retrieval.
+The architecture is intentionally simple. A curated registry in `data/metadata/docs.csv` defines the approved sources. The pipeline parses PDFs, turns them into paragraph-based chunks, and builds both keyword and embedding-based search indexes.
 
-At question time, the system combines keyword search and semantic search, selects the best passages, and sends only that evidence to the answer model. This is the core value add over a normal LLM: answers are based on retrieved regulatory text, not just model recall.
+At question time, the system combines keyword search with embedding-based semantic search, selects the most relevant passages, and sends only that evidence to the answer model. This is the key difference from a normal LLM: the answer is built from retrieved regulatory text, not from open-ended model memory.
 
 The Streamlit app exposes the answer, the retrieved excerpts, and a few controls for inspection. It is a demo deployment, but it already shows the workflow clearly and credibly.
 
 ## 4. Results
 
-The strongest verified results in the current repository are product-level rather than business KPI claims. The assistant is live, supports a bilingual corpus of 22 curated regulatory documents, and produces evidence-backed answers instead of unsupported free-form responses.
+What we can clearly show today is that the assistant is live, works on a bilingual corpus of 22 curated regulatory documents, and produces evidence-backed answers instead of unsupported free-form responses.
 
 The project also includes a reproducible A/B evaluation workflow in `eval/`:
 - `run_ab.py` generates answers for both the RAG pipeline and a non-retrieval baseline
 - `score_ab.py` scores keyword recall, refusal accuracy, citation presence, and latency
 - `make_report.py` builds a shareable markdown summary
 
-Benchmark output files are not committed in the current repository snapshot, so this README avoids unsupported performance claims. The clearest value today is straightforward: compared with a normal LLM, this system gives users inspectable evidence, tighter answer boundaries, and a workflow that fits compliance review better.
+Benchmark output files are not committed in the current repository snapshot, so this README avoids unsupported performance claims. The practical value is straightforward: compared with a normal LLM, this system gives users inspectable evidence, tighter answer boundaries, and a workflow that fits compliance review better.
 
 ## 5. How to Run
 
