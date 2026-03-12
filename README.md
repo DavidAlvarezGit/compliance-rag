@@ -4,30 +4,31 @@
 
 ## 1. Project Overview
 
-This project is a retrieval-augmented generation system that answers banking regulation questions using a curated corpus of Basel and FINMA source documents.
+This project is a retrieval-augmented AI assistant designed to answer banking regulation questions using official Basel and FINMA documents.
 
-It matters because a normal LLM can produce fluent answers without proving where they came from, which is a poor fit for compliance work. This system adds value by grounding every answer in approved source documents, reducing hallucination risk, preserving traceability, and supporting bilingual regulatory research across French and English materials.
+Standard AI models can produce fluent answers, but they do not always show where the information comes from. This can be a problem in compliance or regulatory work, where answers must be based on trusted sources. To solve this, the system searches in a curated collection of regulatory documents and generates answers only from those texts.
+By grounding each response in official sources, the assistant reduces hallucinations, improves reliability, and makes it possible to verify every statement.
+The system also supports both French and English documents, which is important for regulatory research in Switzerland.
 
-Current headline facts:
-- 22 manually curated regulatory documents in the source registry
-- bilingual corpus across French and English
-- hybrid retrieval with BM25 plus FAISS vector search
-- live Streamlit demo for interactive testing
-- evaluation harness for RAG vs non-RAG A/B comparison
+-Compared with a standard AI model, this assistant is designed to:
 
-Compared with a normal LLM, the assistant is designed to:
-- answer from a fixed regulatory corpus instead of open-ended model memory
-- cite supporting passages for factual claims
-- refuse or narrow answers when evidence is missing
-- make retrieved evidence visible to the user
+-Answer questions using a fixed set of approved regulatory documents
+
+-Show citations from the source text
+
+-Display the retrieved passages for transparency
+
+-Support compliance and audit-friendly workflows
 
 ## 2. Problem Definition
 
-Banking and capital-markets regulation is dense, versioned, and spread across multiple supervisory texts. A compliance analyst or reviewer often needs to answer targeted questions such as governance responsibilities, liquidity obligations, or conduct requirements without losing traceability to the original source. The cost of getting this wrong is not just wasted analyst time; it is weak auditability and increased regulatory risk.
+Banking regulation is complex, frequently updated, and spread across many official documents such as Basel standards and FINMA guidance.
+In practice, compliance analysts often need to answer precise questions about topics like governance responsibilities, liquidity rules, or conduct requirements, while still being able to trace the answer back to the original source.
 
-The current manual workflow is usually document search, page scanning, and summarization by hand. That works for narrow questions, but it does not scale well across a bilingual corpus, and it makes consistency difficult when different users phrase similar questions differently.
+Mistakes in this process are not only time-consuming but can also create audit issues and increase regulatory risk if decisions cannot be justified with the correct document reference.
 
-The proposed solution is a grounded RAG workflow: register approved source documents, parse PDFs into page-level text, convert pages into denser paragraph-based chunks, retrieve the strongest evidence with hybrid search, and generate an answer that must stay within the retrieved context and include citations. Success is measured here by retrieval quality, grounded answer quality, citation presence, refusal behavior when evidence is insufficient, and practical usability through a deployable demo.
+To address this, the project proposes a grounded retrieval-augmented workflow.
+Approved regulatory documents are stored in a controlled corpus, converted into searchable text, and split into smaller sections. When a question is asked, the system first finds the most relevant passages, then generates an answer based only on those passages, and includes citations to the source.
 
 ## 3. Technical Approach
 
