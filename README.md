@@ -4,50 +4,42 @@
 
 ## 1. Project Overview
 
-This project is a retrieval-augmented AI assistant designed to answer banking regulation questions using official Basel and FINMA documents.
+This project is a banking regulation assistant that answers questions using approved Basel and FINMA documents, not open-ended model memory.
 
-Standard AI models can produce fluent answers, but they do not always show where the information comes from. This can be a problem in compliance or regulatory work, where answers must be based on trusted sources. To solve this, the system searches in a curated collection of regulatory documents and generates answers only from those texts.
-By grounding each response in official sources, the assistant reduces hallucinations, improves reliability, and makes it possible to verify every statement.
-The system also supports both French and English documents, which is important for regulatory research in Switzerland.
+That matters because a normal LLM can sound convincing without showing evidence. This system is built for a higher bar: it retrieves the right source passages first, answers from those passages, and shows where the answer came from. The result is more useful for compliance work, easier to review, and safer to trust.
 
-Compared with a standard AI model, this assistant is designed to:
-
--Answer questions using a fixed set of approved regulatory documents
-
--Show citations from the source text
-
--Display the retrieved passages for transparency
-
--Support compliance and audit-friendly workflows
+Compared with a normal LLM, the assistant is designed to:
+- answer from a fixed regulatory corpus
+- cite the evidence behind factual claims
+- stay narrow when the sources are weak
+- let the user inspect the supporting text
 
 ## 2. Problem Definition
 
-Banking regulation is complex, frequently updated, and spread across many official documents such as Basel standards and FINMA guidance.
-In practice, compliance analysts often need to answer precise questions about topics like governance responsibilities, liquidity rules, or conduct requirements, while still being able to trace the answer back to the original source.
+Banking regulation is long, fragmented, and difficult to search quickly. Teams often need answers about governance, liquidity, conduct, or capital rules, but they also need to know exactly which source supports the answer.
 
-Mistakes in this process are not only time-consuming but can also create audit issues and increase regulatory risk if decisions cannot be justified with the correct document reference.
+The usual alternative is manual search or a general-purpose chatbot. Manual review is slow. A plain LLM is faster, but it may answer beyond the source material and make review harder.
 
-To address this, the project proposes a grounded retrieval-augmented workflow.
-Approved regulatory documents are stored in a controlled corpus, converted into searchable text, and split into smaller sections. When a question is asked, the system first finds the most relevant passages, then generates an answer based only on those passages, and includes citations to the source.
+The solution here is a grounded RAG workflow: curate the document set, retrieve the best evidence, and generate an answer that stays tied to that evidence. Success is measured by answer quality, citation quality, refusal behavior when evidence is missing, and whether the tool is practical to use in a live demo.
 
 ## 3. Technical Approach
 
-The architecture is intentionally simple. A curated registry in `data/metadata/docs.csv` defines the approved corpus, `src/parse_pdf.py` extracts page text from PDFs, `src/chunk.py` converts that text into paragraph-based overlapping chunks, and `src/index_embeddings.py` builds the FAISS index used for semantic search.
+The architecture is intentionally simple. A curated registry in `data/metadata/docs.csv` defines the approved sources. The pipeline parses PDFs, turns them into paragraph-based chunks, and builds a search index for retrieval.
 
-At query time, the system combines BM25 keyword retrieval with multilingual vector retrieval, then sends only the top evidence passages to the answer model. That is the main difference from a normal LLM: the model is not asked to answer from general memory, but from retrieved regulatory text under citation and no-speculation constraints.
+At question time, the system combines keyword search and semantic search, selects the best passages, and sends only that evidence to the answer model. This is the core value add over a normal LLM: answers are based on retrieved regulatory text, not just model recall.
 
-The interface is delivered through `app/streamlit_app.py`, which exposes filters, retrieval controls, and source excerpts for inspection. It is a demo-oriented deployment, but it already includes the core mechanisms that make the system more trustworthy than a plain chat wrapper.
+The Streamlit app exposes the answer, the retrieved excerpts, and a few controls for inspection. It is a demo deployment, but it already shows the workflow clearly and credibly.
 
 ## 4. Results
 
-The strongest verified results in the current repository are system-level rather than business KPI claims. The assistant is deployed as a live Streamlit demo, supports a bilingual corpus of 22 curated regulatory documents, and produces citation-grounded answers instead of unsupported free-form responses.
+The strongest verified results in the current repository are product-level rather than business KPI claims. The assistant is live, supports a bilingual corpus of 22 curated regulatory documents, and produces evidence-backed answers instead of unsupported free-form responses.
 
 The project also includes a reproducible A/B evaluation workflow in `eval/`:
 - `run_ab.py` generates answers for both the RAG pipeline and a non-retrieval baseline
 - `score_ab.py` scores keyword recall, refusal accuracy, citation presence, and latency
 - `make_report.py` builds a shareable markdown summary
 
-Benchmark output files are not committed in the current repository snapshot, so this README does not claim test-set win rates or business impact numbers that are not backed by stored results. The clearest current value is qualitative: compared with a normal LLM, this system gives users inspectable evidence, narrower answer boundaries, and a workflow that is better aligned with compliance review.
+Benchmark output files are not committed in the current repository snapshot, so this README avoids unsupported performance claims. The clearest value today is straightforward: compared with a normal LLM, this system gives users inspectable evidence, tighter answer boundaries, and a workflow that fits compliance review better.
 
 ## 5. How to Run
 
@@ -86,7 +78,7 @@ After the app launches, ask a question such as:
 What governance responsibilities does the board have for internal controls?
 ```
 
-The app will retrieve supporting passages, generate a grounded answer, and optionally show the underlying excerpts and retrieval scores.
+The app will retrieve supporting passages, draft an answer from those passages, and show the underlying evidence.
 
 ## 6. Project Structure
 
@@ -124,9 +116,9 @@ snb-rag/
 
 ## 7. Future Improvements
 
-- Add stored benchmark outputs and a stable results table in the README so model-quality claims are reproducible.
-- Introduce metadata-aware ranking for time-sensitive queries such as "latest", "current", or version-specific regulatory questions.
-- Add a reranker after first-stage retrieval to improve evidence ordering for long or ambiguous questions.
-- Make chunking more section-aware so legal structure, headings, and numbered obligations are preserved more explicitly.
-- Add monitoring, regression checks, and artifact validation so pipeline failures or retrieval regressions are easier to catch.
-- Harden deployment beyond Streamlit demo mode with clearer service boundaries, logging, and operational controls.
+- Add stored benchmark outputs so README claims are reproducible.
+- Improve ranking for time-sensitive or version-specific queries.
+- Add a reranker to improve evidence ordering.
+- Make chunking more aware of legal sections and headings.
+- Add monitoring and regression checks.
+- Harden deployment beyond Streamlit demo mode.
