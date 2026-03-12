@@ -308,6 +308,7 @@ Every factual claim must include a citation in this format:
 
 Write in a concise but sufficiently informative professional tone.
 Aim for a moderate-length answer: fuller than a brief summary, but not exhaustive.
+Prefer explanation over compression. Unless the evidence is thin, give enough detail for a professional reader to understand the main requirements, conditions, limitations, and practical implications.
 Output sections:
 1) Executive Summary
 2) Compliance Implications
@@ -613,12 +614,12 @@ with st.sidebar:
         bm25_k = st.slider("Keyword candidate pool", 10, 250, 40, 10)
         vec_k = st.slider("Vector candidate pool", 10, 250, 40, 10)
         w_bm25 = st.slider("Keyword weight", 0.0, 1.0, 0.45, 0.05)
-        max_chunks_for_llm = st.slider("Evidence passages sent to model", 3, 12, 6, 1)
+        max_chunks_for_llm = st.slider("Evidence passages sent to model", 3, 12, 8, 1)
         max_chunks_per_doc = st.slider("Max passages per source", 1, 5, 2, 1)
 
     with st.expander("Advanced Generation", expanded=False):
         temperature = st.slider("Temperature", 0.0, 0.5, 0.0, 0.05)
-        max_tokens = st.slider("Max completion tokens", 256, 2000, 1200, 50)
+        max_tokens = st.slider("Max completion tokens", 256, 2000, 1500, 50)
 
 st.markdown('<div class="panel">', unsafe_allow_html=True)
 st.subheader("Ask a question")

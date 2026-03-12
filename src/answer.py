@@ -56,12 +56,13 @@ Your task:
 Output format (strictly follow this structure):
 
 REPONSE SYNTHETIQUE:
-(4-7 bullet points maximum, clear and factual)
+(5-8 bullet points, clear and factual)
 
 ANALYSE DETAILLEE:
-(2-4 short paragraphs that explain the main points, obligations, limits, or conditions in practical terms)
+(3-5 medium-length paragraphs that explain the main points, obligations, limits, exceptions, or conditions in practical terms)
 
 Keep the answer moderately detailed: more complete than a short summary, but avoid long reports and repetition.
+Prefer concrete explanation over compression. Unless the evidence is very limited, provide enough detail that a compliance reader can understand what is required, why it matters, and where the main limits or conditions apply.
 
 Each factual statement MUST include a citation in this format:
 (Source: DOC_ID pp.X-Y)
@@ -90,7 +91,7 @@ Sources:
             {"role": "user", "content": prompt},
         ],
         temperature=0.0,
-        max_completion_tokens=800,
+        max_completion_tokens=1100,
     )
 
     return response.choices[0].message.content
