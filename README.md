@@ -10,7 +10,7 @@ Standard AI models can produce fluent answers, but they do not always show where
 By grounding each response in official sources, the assistant reduces hallucinations, improves reliability, and makes it possible to verify every statement.
 The system also supports both French and English documents, which is important for regulatory research in Switzerland.
 
--Compared with a standard AI model, this assistant is designed to:
+Compared with a standard AI model, this assistant is designed to:
 
 -Answer questions using a fixed set of approved regulatory documents
 
