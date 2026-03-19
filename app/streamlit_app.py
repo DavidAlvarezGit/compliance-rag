@@ -66,6 +66,14 @@ class Chunk:
     hybrid: float = 0.0
 
 
+@dataclass
+class RetrievalResources:
+    chunks_df: pd.DataFrame
+    bm25: BM25Okapi
+    embedder: SentenceTransformer
+    index: faiss.Index
+
+
 def safe_int(x, default=0) -> int:
     try:
         return int(x)
@@ -145,6 +153,24 @@ def load_openai_client() -> OpenAI:
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY is not set. Set it in environment or Streamlit secrets.")
     return OpenAI(api_key=api_key)
+
+
+@st.cache_resource
+def load_retrieval_resources(
+    chunks_path: str,
+    chunks_mtime: float,
+    faiss_index_path: str,
+    faiss_mtime: float,
+    embedding_model: str,
+) -> RetrievalResources:
+    del chunks_mtime, faiss_mtime, embedding_model
+    chunks_df = load_chunks(chunks_path, Path(chunks_path).stat().st_mtime)
+    return RetrievalResources(
+        chunks_df=chunks_df,
+        bm25=load_bm25(chunks_df),
+        embedder=load_embedder(),
+        index=load_faiss(),
+    )
 
 
 def build_doc_lookup(docs_df: pd.DataFrame) -> dict[str, dict[str, str]]:
@@ -334,10 +360,17 @@ st.set_page_config(page_title="Compliance Evidence Assistant", layout="wide")
 
 docs_df = load_docs(DOCS_PATH, Path(DOCS_PATH).stat().st_mtime)
 doc_lookup = build_doc_lookup(docs_df)
-chunks_df = load_chunks(CHUNKS_PATH, Path(CHUNKS_PATH).stat().st_mtime)
-bm25 = load_bm25(chunks_df)
-embedder = load_embedder()
-faiss_index = load_faiss()
+retrieval = load_retrieval_resources(
+    CHUNKS_PATH,
+    Path(CHUNKS_PATH).stat().st_mtime,
+    FAISS_INDEX_PATH,
+    Path(FAISS_INDEX_PATH).stat().st_mtime,
+    EMBEDDING_MODEL,
+)
+chunks_df = retrieval.chunks_df
+bm25 = retrieval.bm25
+embedder = retrieval.embedder
+faiss_index = retrieval.index
 
 available_topics = sorted(topic for topic in docs_df["topic"].dropna().unique().tolist())
 available_languages = sorted(language for language in docs_df["language"].dropna().unique().tolist())

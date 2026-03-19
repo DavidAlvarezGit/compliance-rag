@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from functools import lru_cache
 
 import faiss
 import numpy as np
@@ -16,12 +17,24 @@ EMBEDDING_MODEL = os.getenv(
     "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
 )
 
-index = faiss.read_index(str(ARTIFACT_DIR / "faiss.index"))
-df = pd.read_parquet(ARTIFACT_DIR / "embedding_metadata.parquet")
+@lru_cache(maxsize=1)
+def load_index():
+    return faiss.read_index(str(ARTIFACT_DIR / "faiss.index"))
 
-model = SentenceTransformer(EMBEDDING_MODEL)
+
+@lru_cache(maxsize=1)
+def load_df():
+    return pd.read_parquet(ARTIFACT_DIR / "embedding_metadata.parquet")
+
+
+@lru_cache(maxsize=1)
+def load_model():
+    return SentenceTransformer(EMBEDDING_MODEL)
 
 def search(query, top_k=5):
+    index = load_index()
+    df = load_df()
+    model = load_model()
     query_vec = model.encode([query], normalize_embeddings=True).astype("float32")
     scores, indices = index.search(query_vec, top_k)
     similarities = scores[0]

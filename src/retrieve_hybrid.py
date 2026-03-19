@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import re
 import unicodedata
+from functools import lru_cache
 
 import faiss
 import numpy as np
@@ -23,7 +24,9 @@ EMBEDDING_MODEL = os.getenv(
     "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
 )
 
-df = pd.read_parquet(CHUNKS_PATH)
+@lru_cache(maxsize=1)
+def load_chunks_df():
+    return pd.read_parquet(CHUNKS_PATH)
 
 
 # ------------------------------------------------
@@ -36,22 +39,35 @@ def tokenize(text):
     return re.findall(r"[a-z0-9]+", normalized)
 
 
-corpus = df["chunk_text"].tolist()
-tokenized_corpus = [tokenize(doc) for doc in corpus]
-bm25 = BM25Okapi(tokenized_corpus)
+@lru_cache(maxsize=1)
+def load_bm25():
+    df = load_chunks_df()
+    corpus = df["chunk_text"].tolist()
+    tokenized_corpus = [tokenize(doc) for doc in corpus]
+    return BM25Okapi(tokenized_corpus)
 
 
 # ------------------------------------------------
 # Vector Setup (global for speed)
 # ------------------------------------------------
-index = faiss.read_index(str(ARTIFACT_DIR / "faiss.index"))
-model = SentenceTransformer(EMBEDDING_MODEL)
+@lru_cache(maxsize=1)
+def load_index():
+    return faiss.read_index(str(ARTIFACT_DIR / "faiss.index"))
+
+
+@lru_cache(maxsize=1)
+def load_model():
+    return SentenceTransformer(EMBEDDING_MODEL)
 
 
 # ------------------------------------------------
 # Hybrid Search
 # ------------------------------------------------
 def hybrid_search(query, top_k=5):
+    df = load_chunks_df()
+    bm25 = load_bm25()
+    index = load_index()
+    model = load_model()
     tokenized_query = tokenize(query)
     bm25_scores = bm25.get_scores(tokenized_query)
 
