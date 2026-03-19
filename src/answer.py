@@ -1,13 +1,100 @@
-from __future__ import annotations
+from pathlib import Path
+import os
 
-try:
-    from .rag import answer_question, build_context, generate_answer, load_openai_client
-except ImportError:
-    from rag import answer_question, build_context, generate_answer, load_openai_client
+from dotenv import load_dotenv
+from openai import OpenAI
+
+# --- Load environment variables ---
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 
 def get_client():
-    return load_openai_client()
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set.")
+    return OpenAI(api_key=api_key)
+
+
+def build_context(results):
+    context_blocks = []
+    for _, row in results.iterrows():
+        block = f"""
+Source: {row['doc_id']} (pp. {row['page_start']}-{row['page_end']})
+{row['chunk_text']}
+"""
+        context_blocks.append(block.strip())
+    return "\n\n".join(context_blocks)
+
+
+def answer_question(query):
+    try:
+        from .retrieve_hybrid import hybrid_search
+    except ImportError:
+        from retrieve_hybrid import hybrid_search
+
+    results = hybrid_search(query, top_k=8)
+    if results.empty:
+        return "We cannot answer with current sources."
+
+    context = build_context(results)
+
+    prompt = f"""
+You are a professional banking regulation analyst specialized in the Basel III framework.
+
+Your task:
+- Answer strictly using ONLY the provided sources.
+- Answer in the same language as the user's question.
+- If the sources are insufficient, say exactly:
+  "Les sources fournies ne permettent pas de repondre avec certitude."
+- Do NOT use outside knowledge.
+- Do NOT generalize beyond what is written.
+- Do not infer or extrapolate beyond what is explicitly written.
+
+Output format (strictly follow this structure):
+
+REPONSE SYNTHETIQUE:
+(5-8 bullet points, clear and factual)
+
+ANALYSE DETAILLEE:
+(3-5 medium-length paragraphs that explain the main points, obligations, limits, exceptions, or conditions in practical terms)
+
+Keep the answer moderately detailed: more complete than a short summary, but avoid long reports and repetition.
+Prefer concrete explanation over compression. Unless the evidence is very limited, provide enough detail that a compliance reader can understand what is required, why it matters, and where the main limits or conditions apply.
+
+Each factual statement MUST include a citation in this format:
+(Source: DOC_ID pp.X-Y)
+
+If multiple sources support a claim, cite multiple sources.
+
+
+Question:
+{query}
+
+Sources:
+{context}
+"""
+
+    response = get_client().chat.completions.create(
+        model=OPENAI_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a rigorous banking regulation analyst. "
+                    "You must never hallucinate. "
+                    "Always answer in the same language as the user's question."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.0,
+        max_completion_tokens=1100,
+    )
+
+    return response.choices[0].message.content
 
 
 if __name__ == "__main__":

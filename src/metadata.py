@@ -24,7 +24,7 @@ REQUIRED_COLUMNS = [
 def load_metadata(metadata_path: Path = METADATA_PATH) -> pd.DataFrame:
     if not metadata_path.exists():
         raise FileNotFoundError(f"Metadata file not found: {metadata_path}")
-    df = pd.read_csv(metadata_path, encoding="utf-8")
+    df = pd.read_csv(metadata_path)
     missing_columns = [column for column in REQUIRED_COLUMNS if column not in df.columns]
     if missing_columns:
         raise ValueError(f"docs.csv missing required columns: {missing_columns}")
