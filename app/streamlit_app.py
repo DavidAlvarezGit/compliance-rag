@@ -1,18 +1,14 @@
 from __future__ import annotations
 
 import os
-import sys
 import time
 from pathlib import Path
 
 import streamlit as st
 from dotenv import load_dotenv
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
 from src.rag import (
+    BASE_DIR,
     DEFAULT_MODEL,
     EMBEDDING_MODEL,
     GenerationConfig,
@@ -26,7 +22,7 @@ from src.rag import (
     generate_answer,
 )
 
-load_dotenv(PROJECT_ROOT / ".env")
+load_dotenv(BASE_DIR / ".env")
 
 EXAMPLE_QUESTIONS = [
     "What governance responsibilities does the board have for internal controls?",
@@ -53,9 +49,9 @@ def render_register_table(df):
 
 
 st.set_page_config(page_title="Compliance Evidence Assistant", layout="wide")
-docs_path = os.getenv("DOCS_PATH", str(PROJECT_ROOT / "data" / "metadata" / "docs.csv"))
-chunks_path = os.getenv("CHUNKS_PATH", str(PROJECT_ROOT / "data" / "processed" / "chunks.parquet"))
-index_path = os.getenv("FAISS_INDEX_PATH", str(PROJECT_ROOT / "data" / "artifacts" / "faiss.index"))
+docs_path = os.getenv("DOCS_PATH", str(BASE_DIR / "data" / "metadata" / "docs.csv"))
+chunks_path = os.getenv("CHUNKS_PATH", str(BASE_DIR / "data" / "processed" / "chunks.parquet"))
+index_path = os.getenv("FAISS_INDEX_PATH", str(BASE_DIR / "data" / "artifacts" / "faiss.index"))
 embedding_model = os.getenv("EMBEDDING_MODEL", EMBEDDING_MODEL)
 docs_df = load_docs(Path(docs_path))
 doc_lookup = build_doc_lookup(docs_df)
