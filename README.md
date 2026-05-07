@@ -6,10 +6,10 @@
 
 This project is a banking regulation assistant that answers questions using approved Basel and FINMA documents.
 
-That matters because a normal LLM can sound convincing without showing evidence. This system is built for better accountability: it retrieves the right source passages first, answers from those passages, and shows where the answer came from. The result is more useful for compliance work, easier to review, and safer to trust.
+This system is built for better accountability: it retrieves the right source passages first, answers from those passages, and shows where the answer came from. The result is more useful for compliance work, easier to review, and safer to trust.
 
-Compared with a normal LLM, the assistant is designed to:
-- answer from a fixed regulatory corpus
+Compared with a normal LLM (e.g. ChatGPT), the assistant is designed to:
+- answer from a fixed regulatory text
 - cite the evidence behind factual claims
 - stay narrow when the sources are weak
 - let the user inspect the supporting text
