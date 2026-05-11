@@ -10,8 +10,8 @@ This system is built for better accountability: it retrieves the right source pa
 
 Compared with an usual LLM (e.g. ChatGPT), the assistant is designed to:
 - answer from a fixed regulatory text
-- cite the evidence behind factual claims
-- stay narrow when the sources are weak
+- cite the evidence behind facts
+- don't overstate when the sources are weak
 - let the user inspect the supporting text
 
 ## 2. Problem Definition
