@@ -64,6 +64,10 @@ poetry install
 .\.venv\Scripts\python.exe src\index_embeddings.py
 ```
 
+The indexing step also writes `index_manifest.json`. At startup, the application
+verifies the embedding model, vector dimension, row count, metadata hash, and
+corpus hash before accepting the index.
+
 ### Run the App
 
 ```powershell
@@ -96,11 +100,13 @@ snb-rag/
 |  |- artifacts/
 |  |  |- faiss.index           # Vector index
 |  |  |- embedding_metadata.parquet
+|  |  |- index_manifest.json   # Index/model/corpus integrity metadata
 |- eval/
 |  |- questions.csv            # Evaluation set
 |  |- run_ab.py                # Generate RAG vs baseline answers
 |  |- score_ab.py              # Score recall, refusals, citations, latency
 |  |- make_report.py           # Build markdown report
+|- tests/                       # Ingestion, retrieval, artifact, and eval regressions
 |- src/
 |  |- metadata.py              # Validate document registry
 |  |- parse_pdf.py             # Extract PDF text page by page
@@ -122,3 +128,9 @@ snb-rag/
 - Make chunking more aware of legal sections and headings.
 - Add monitoring and regression checks.
 - Harden deployment beyond Streamlit demo mode.
+
+### Run Tests
+
+```powershell
+poetry run pytest -q
+```

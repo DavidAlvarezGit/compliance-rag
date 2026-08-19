@@ -192,6 +192,9 @@ cython_debug/
 .ruff_cache/
 
 *.env
+data/**/*.tmp.index
+data/**/*.tmp.json
+data/**/*.tmp.parquet
 # PyPI configuration file
 .pypirc
 

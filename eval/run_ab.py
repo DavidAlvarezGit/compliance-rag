@@ -43,9 +43,8 @@ def baseline_answer(question: str, model: str) -> str:
     return response.choices[0].message.content or ""
 
 
-def doc_ids_for_question(question: str, top_k: int = 8) -> str:
-    """Get selected doc_ids from hybrid retrieval for traceability."""
-    results = hybrid_search(question, top_k=top_k)
+def doc_ids_for_results(results: pd.DataFrame) -> str:
+    """Get selected doc_ids from an existing retrieval result."""
     if results.empty:
         return ""
     ordered = list(dict.fromkeys(results["doc_id"].astype(str).tolist()))
@@ -67,14 +66,15 @@ def main() -> None:
         is_answerable = int(row.is_answerable)
 
         t0 = time.time()
-        rag_text = answer_question(question)
+        retrieval_results = hybrid_search(question, top_k=8)
+        rag_text = answer_question(question, results=retrieval_results)
         rag_latency_s = time.time() - t0
 
         t1 = time.time()
         baseline_text = baseline_answer(question, model=model)
         baseline_latency_s = time.time() - t1
 
-        retrieved_doc_ids = doc_ids_for_question(question)
+        retrieved_doc_ids = doc_ids_for_results(retrieval_results)
 
         out_rows.append(
             {

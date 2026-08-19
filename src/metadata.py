@@ -31,13 +31,20 @@ def load_metadata(metadata_path: Path = METADATA_PATH) -> pd.DataFrame:
     return df
 
 
+def resolve_local_path(value: object, base_dir: Path = BASE_DIR) -> Path:
+    path = Path(str(value))
+    return path if path.is_absolute() else base_dir / path
+
+
 def validate_metadata(df: pd.DataFrame, raw_dir: Path = RAW_DIR) -> None:
     pdf_paths = {
         str(path.resolve())
         for path in raw_dir.iterdir()
         if path.is_file() and path.suffix.lower() == ".pdf"
     }
-    metadata_paths = {str(Path(path).resolve()) for path in df["local_path"].tolist()}
+    metadata_paths = {
+        str(resolve_local_path(path).resolve()) for path in df["local_path"].tolist()
+    }
 
     missing_rows = sorted(pdf_paths - metadata_paths)
     stale_rows = sorted(metadata_paths - pdf_paths)

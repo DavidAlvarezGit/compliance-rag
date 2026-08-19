@@ -26,9 +26,9 @@ id,question,reference_answer,is_answerable
 25,"Which corpus topic is directly related to resilience?","Operational risk framework is directly related to resilience.",1
 26,"Which corpus topic is directly related to climate and nature?","Climate and nature related financial risks is the relevant topic.",1
 27,"Which corpus topic is directly related to liquidity reporting?","Liquidity risk management is the topic tied to liquidity reporting.",1
-28,"What years appear for regulation documents in this corpus?","The years are 2013 2017 2019 2023 2025 and 2026.",1
+28,"What years appear for regulation documents in this corpus?","The years are 2007 2012 2013 2014 2015 2017 2018 2019 2023 2024 2025 and 2026.",1
 29,"What document family appears in all corpus records?","All records use the REG_BANK document family.",1
-30,"What language are the listed corpus documents?","The listed documents are in English.",1
+30,"What languages are represented in the corpus?","The corpus contains documents in French and English.",1
 31,"What did Basel require in 2011 for AI model governance?","Les sources fournies ne permettent pas de répondre avec certitude.",0
 32,"What does the corpus state about CBDC retail limits in 2030?","Les sources fournies ne permettent pas de répondre avec certitude.",0
 33,"What are the corpus rules for DeFi leverage caps in 2029?","Les sources fournies ne permettent pas de répondre avec certitude.",0

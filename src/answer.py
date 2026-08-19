@@ -11,6 +11,14 @@ load_dotenv(BASE_DIR / ".env")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 
+def insufficient_evidence_message(query: str) -> str:
+    french_markers = {"le", "la", "les", "des", "une", "quelles", "quel", "dans", "sur"}
+    words = {word.strip(".,?!:;").lower() for word in query.split()}
+    if words & french_markers or any(char in query.lower() for char in "àâçéèêëîïôùûüÿœ"):
+        return "Les sources fournies ne permettent pas de répondre avec certitude."
+    return "The provided sources do not support a sufficiently certain answer."
+
+
 def get_client():
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -29,15 +37,16 @@ Source: {row['doc_id']} (pp. {row['page_start']}-{row['page_end']})
     return "\n\n".join(context_blocks)
 
 
-def answer_question(query):
+def answer_question(query, results=None):
     try:
         from .retrieve_hybrid import hybrid_search
     except ImportError:
         from retrieve_hybrid import hybrid_search
 
-    results = hybrid_search(query, top_k=8)
+    if results is None:
+        results = hybrid_search(query, top_k=8)
     if results.empty:
-        return "We cannot answer with current sources."
+        return insufficient_evidence_message(query)
 
     context = build_context(results)
 
@@ -47,8 +56,7 @@ You are a professional banking regulation analyst specialized in the Basel III f
 Your task:
 - Answer strictly using ONLY the provided sources.
 - Answer in the same language as the user's question.
-- If the sources are insufficient, say exactly:
-  "Les sources fournies ne permettent pas de repondre avec certitude."
+- If the sources are insufficient, clearly refuse in the same language as the question.
 - Do NOT use outside knowledge.
 - Do NOT generalize beyond what is written.
 - Do not infer or extrapolate beyond what is explicitly written.
