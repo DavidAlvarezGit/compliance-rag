@@ -163,3 +163,46 @@ def test_invalid_citation_does_not_block_verification_of_other_claims() -> None:
     assert report.semantic_checked
     assert report.can_return_partial
     assert select_verified_answer(draft, report, "What does the board oversee?") == f"- {supported}"
+
+
+def test_semantic_verifier_deduplicates_shared_evidence() -> None:
+    captured: dict = {}
+    payload = {
+        "answers_question": True,
+        "answer_reason": "Both claims answer the question.",
+        "claims": [
+            {"claim_index": 0, "supported": True, "reason": "Directly stated."},
+            {"claim_index": 1, "supported": True, "reason": "Directly stated."},
+        ],
+    }
+    response = SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(payload)))]
+    )
+
+    def create(**kwargs):
+        captured.update(kwargs)
+        return response
+
+    client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=create))
+    )
+    citation = "(Source: governance-doc pp.10-12)"
+    answer = (
+        f"- The board oversees risk governance. {citation}\n"
+        f"- The board oversees internal controls. {citation}"
+    )
+
+    report = verify_citations(
+        answer,
+        evidence(),
+        client=client,
+        model="fake-verifier",
+        semantic=True,
+        question="What does the board oversee?",
+    )
+    request = json.loads(captured["messages"][1]["content"])
+
+    assert report.valid
+    assert len(request["evidence"]) == 1
+    assert request["claims"][0]["evidence_ids"] == ["E1"]
+    assert request["claims"][1]["evidence_ids"] == ["E1"]

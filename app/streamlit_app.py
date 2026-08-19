@@ -51,7 +51,7 @@ INDEX_MANIFEST_PATH = os.getenv(
     "INDEX_MANIFEST_PATH", str(BASE_DIR / "data" / "artifacts" / MANIFEST_NAME)
 )
 MIN_VECTOR_SIMILARITY = float(os.getenv("MIN_VECTOR_SIMILARITY", "0.25"))
-RERANK_CANDIDATE_K = int(os.getenv("RERANK_CANDIDATE_K", "40"))
+RERANK_CANDIDATE_K = int(os.getenv("RERANK_CANDIDATE_K", "24"))
 VERIFIED_STREAM_DELAY_SECONDS = float(os.getenv("VERIFIED_STREAM_DELAY_SECONDS", "0.018"))
 
 TOPIC_LABELS = {
@@ -281,8 +281,13 @@ def retrieve_candidates(
         return []
 
     tokenized_query = normalize_query_tokens(query)
-    tokenized_corpus = [normalize_query_tokens(text) for text in candidate_df["chunk_text"].tolist()]
-    filtered_bm25 = bm25 if len(candidate_df) == len(chunks_df) else BM25Okapi(tokenized_corpus)
+    if len(candidate_df) == len(chunks_df):
+        filtered_bm25 = bm25
+    else:
+        tokenized_corpus = [
+            normalize_query_tokens(text) for text in candidate_df["chunk_text"].tolist()
+        ]
+        filtered_bm25 = BM25Okapi(tokenized_corpus)
 
     bm25_scores = np.array(filtered_bm25.get_scores(tokenized_query), dtype=float)
     bm25_limit = min(bm25_k, len(candidate_df))
@@ -333,9 +338,8 @@ def retrieve_candidates(
 
     rows.sort(key=lambda item: item.hybrid, reverse=True)
     if use_reranker and rows:
-        # Keep the interactive path aligned with the benchmarked 40-candidate
-        # reranking stage. Scoring the full BM25/vector union can nearly double
-        # CPU latency without improving the evidence supplied to the model.
+        # Use a smaller interactive pool than the 40-candidate evaluation path.
+        # This cuts CPU latency while retaining the strongest hybrid candidates.
         rows = rows[: max(1, RERANK_CANDIDATE_K)]
         scores = score_passages(query, [row.chunk_text for row in rows])
         for row, score in zip(rows, scores):

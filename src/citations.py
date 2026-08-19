@@ -175,18 +175,40 @@ def _semantic_checks(
     question: str | None,
 ) -> tuple[dict[int, tuple[bool, str]], bool, str]:
     items = []
+    evidence_catalog: list[dict[str, Any]] = []
+    evidence_ids: dict[tuple[str, int, int, str], str] = {}
     for claim in claims:
-        excerpts = []
+        claim_evidence_ids: list[str] = []
         for citation in claim.citations:
             for row in _matching_evidence(citation, evidence_rows):
-                excerpts.append(
-                    {
-                        "source": citation.doc_id,
-                        "pages": f"{citation.page_start}-{citation.page_end}",
-                        "text": str(row["chunk_text"]),
-                    }
+                key = (
+                    str(row["doc_id"]),
+                    int(row["page_start"]),
+                    int(row["page_end"]),
+                    str(row["chunk_text"]),
                 )
-        items.append({"claim_index": claim.claim_index, "claim": claim.text, "evidence": excerpts})
+                evidence_id = evidence_ids.get(key)
+                if evidence_id is None:
+                    evidence_id = f"E{len(evidence_catalog) + 1}"
+                    evidence_ids[key] = evidence_id
+                    evidence_catalog.append(
+                        {
+                            "evidence_id": evidence_id,
+                            "source": key[0],
+                            "pages": f"{key[1]}-{key[2]}",
+                            "text": key[3],
+                        }
+                    )
+                if evidence_id not in claim_evidence_ids:
+                    claim_evidence_ids.append(evidence_id)
+        items.append(
+            {
+                "claim_index": claim.claim_index,
+                "claim": claim.text,
+                "citations": [asdict(citation) for citation in claim.citations],
+                "evidence_ids": claim_evidence_ids,
+            }
+        )
 
     schema = {
         "type": "object",
@@ -213,7 +235,7 @@ def _semantic_checks(
     response = client.chat.completions.create(
         model=model,
         temperature=0.0,
-        max_completion_tokens=1000,
+        max_completion_tokens=700,
         response_format={
             "type": "json_schema",
             "json_schema": {"name": "citation_verification", "strict": True, "schema": schema},
@@ -237,7 +259,12 @@ def _semantic_checks(
             {
                 "role": "user",
                 "content": json.dumps(
-                    {"question": question, "claims": items}, ensure_ascii=False
+                    {
+                        "question": question,
+                        "claims": items,
+                        "evidence": evidence_catalog,
+                    },
+                    ensure_ascii=False,
                 ),
             },
         ],
