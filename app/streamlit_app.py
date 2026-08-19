@@ -24,7 +24,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.artifacts import MANIFEST_NAME, validate_artifacts
-from src.answer import insufficient_evidence_message, select_verified_answer
 from src.citations import VerificationReport, verify_citations
 from src.rerank import has_relevant_passage, score_passages
 from src.retrieval_utils import (
@@ -76,6 +75,27 @@ EXAMPLE_QUESTIONS = [
     "Quelles obligations découlent de l'ordonnance sur les liquidités ?",
     "What does the current corpus say about climate and nature-related financial risk governance?",
 ]
+
+
+def insufficient_evidence_message(query: str) -> str:
+    """Return a localized refusal without importing the batch answer module."""
+    french_markers = {"le", "la", "les", "des", "une", "quelles", "quel", "dans", "sur"}
+    words = {word.strip(".,?!:;").lower() for word in query.split()}
+    french_characters = "àâçéèêëîïôùûüÿœ"
+    if words & french_markers or any(char in query.lower() for char in french_characters):
+        return "Les sources fournies ne permettent pas de répondre avec certitude."
+    return "The provided sources do not support a sufficiently certain answer."
+
+
+def select_verified_answer(
+    draft: str, report: VerificationReport, query: str
+) -> str:
+    """Select safe output while tolerating a stale verifier during cloud redeployment."""
+    if report.valid:
+        return draft
+    if getattr(report, "can_return_partial", False):
+        return "\n".join(f"- {claim.text}" for claim in report.verified_claims)
+    return insufficient_evidence_message(query)
 
 
 @dataclass
