@@ -830,6 +830,9 @@ if submitted:
                 verification = None
 
             if answer:
+                partial_answer_available = bool(
+                    verification and getattr(verification, "can_return_partial", False)
+                )
                 if verification and verification.is_refusal:
                     progress.update(
                         label="Insufficient evidence for a supported answer",
@@ -838,7 +841,7 @@ if submitted:
                     )
                 elif verification and verification.valid:
                     progress.update(label="Verified response ready", state="complete", expanded=False)
-                elif verification and verification.can_return_partial:
+                elif partial_answer_available:
                     progress.update(
                         label="Verified response ready; unsupported claims removed",
                         state="complete",
@@ -855,16 +858,18 @@ if submitted:
                 if verification and verification.is_refusal:
                     st.write(answer)
                     st.warning("The retrieved sources were insufficient for a supported answer.")
-                elif verification and (verification.valid or verification.can_return_partial):
+                elif verification and (verification.valid or partial_answer_available):
                     st.write_stream(stream_verified_text(answer))
                     if verification.valid:
                         st.success(
                             f"Verified {len(verification.claims)} factual claims against supplied citations."
                         )
                     else:
+                        verified_claims = getattr(verification, "verified_claims", [])
+                        rejected_claims = getattr(verification, "rejected_claims", [])
                         st.warning(
-                            f"Showing {len(verification.verified_claims)} verified claims; "
-                            f"removed {len(verification.rejected_claims)} unsupported or invalid claims."
+                            f"Showing {len(verified_claims)} verified claims; "
+                            f"removed {len(rejected_claims)} unsupported or invalid claims."
                         )
                 elif verification:
                     st.write(answer)
