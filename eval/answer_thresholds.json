@@ -1,0 +1,13 @@
+{
+  "minimums": {
+    "rag_correctness": 0.60,
+    "rag_completeness": 0.55,
+    "refusal_accuracy": 0.70,
+    "retrieval_recall_at_8": 0.70,
+    "citation_coverage": 0.90,
+    "citation_provenance_accuracy": 0.90,
+    "citation_support_rate": 0.80,
+    "verified_answer_rate": 0.70
+  },
+  "maximum_correctness_drop_from_baseline": 0.05
+}
