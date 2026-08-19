@@ -7,6 +7,7 @@ import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote
 
 import faiss
 import numpy as np
@@ -48,6 +49,9 @@ INDEX_MANIFEST_PATH = os.getenv(
     "INDEX_MANIFEST_PATH", str(BASE_DIR / "data" / "artifacts" / MANIFEST_NAME)
 )
 MIN_VECTOR_SIMILARITY = float(os.getenv("MIN_VECTOR_SIMILARITY", "0.25"))
+REPOSITORY_URL = os.getenv(
+    "REPOSITORY_URL", "https://github.com/DavidAlvarezGit/compliance-rag"
+).rstrip("/")
 
 TOPIC_LABELS = {
     "capital_requirements_framework": "Capital Requirements",
@@ -221,6 +225,8 @@ def build_doc_lookup(docs_df: pd.DataFrame) -> dict[str, dict[str, str]]:
             "title": str(row.title),
             "topic": str(row.topic),
             "language": str(row.language),
+            "year": str(row.year),
+            "local_path": str(row.local_path),
         }
     return lookup
 
@@ -233,6 +239,13 @@ def source_title(doc_lookup: dict[str, dict[str, str]], doc_id: str, topic: Opti
     if topic:
         return TOPIC_LABELS.get(topic, topic.replace("_", " ").title())
     return doc_id
+
+
+def source_pdf_url(doc_lookup: dict[str, dict[str, str]], doc_id: str) -> str | None:
+    path = doc_lookup.get(doc_id, {}).get("local_path", "").strip().replace("\\", "/")
+    if not path or path.lower() == "nan":
+        return None
+    return f"{REPOSITORY_URL}/blob/main/{quote(path, safe='/')}"
 
 
 def retrieve_candidates(
@@ -600,17 +613,51 @@ if submitted:
                         "Supporting excerpts",
                         icon=":material/article:",
                     ):
-                        for rank, chunk in enumerate(candidates[: int(max_chunks_for_llm)], start=1):
-                            title = source_title(doc_lookup, chunk.doc_id, chunk.topic)
-                            score_text = ""
-                            if show_scores:
-                                score_text = f" | hybrid={chunk.hybrid:.3f}"
+                        selected_chunks = candidates[: int(max_chunks_for_llm)]
+                        chunks_by_document: dict[str, list[Chunk]] = {}
+                        for chunk in selected_chunks:
+                            chunks_by_document.setdefault(chunk.doc_id, []).append(chunk)
+
+                        st.caption(
+                            "These are the exact documents and page excerpts used to draft and verify the answer."
+                        )
+                        for rank, (doc_id, source_chunks) in enumerate(
+                            chunks_by_document.items(), start=1
+                        ):
+                            first_chunk = source_chunks[0]
+                            metadata = doc_lookup.get(doc_id, {})
+                            title = source_title(doc_lookup, doc_id, first_chunk.topic)
+                            topic = TOPIC_LABELS.get(
+                                first_chunk.topic or "", (first_chunk.topic or "Other").replace("_", " ").title()
+                            )
+                            year = metadata.get("year", "").removesuffix(".0")
+                            language = metadata.get("language", "").upper()
+                            pdf_url = source_pdf_url(doc_lookup, doc_id)
                             with st.container(border=True):
                                 st.markdown(f"**{rank}. {title}**")
-                                st.caption(
-                                    f"{chunk.doc_id} · pages {chunk.page_start}–{chunk.page_end}{score_text}"
-                                )
-                                st.write(chunk.chunk_text)
+                                with st.container(horizontal=True, gap="small"):
+                                    st.badge(topic, color="blue")
+                                    if year and year.lower() != "nan":
+                                        st.badge(year, color="gray")
+                                    if language and language != "NAN":
+                                        st.badge(language, color="gray")
+                                st.caption(f"Document ID: {doc_id}")
+                                if pdf_url:
+                                    st.link_button(
+                                        "Open corpus PDF",
+                                        pdf_url,
+                                        icon=":material/open_in_new:",
+                                        type="tertiary",
+                                    )
+                                for excerpt_number, chunk in enumerate(source_chunks, start=1):
+                                    score_text = (
+                                        f" · retrieval score {chunk.hybrid:.3f}" if show_scores else ""
+                                    )
+                                    st.markdown(
+                                        f"**Excerpt {excerpt_number} · pages "
+                                        f"{chunk.page_start}–{chunk.page_end}**{score_text}"
+                                    )
+                                    st.write(chunk.chunk_text)
 
 with st.expander("Document register", icon=":material/library_books:"):
     st.caption(
