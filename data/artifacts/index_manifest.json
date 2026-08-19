@@ -1,0 +1,7 @@
+{
+  "embedding_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "dimension": 384,
+  "row_count": 4030,
+  "metadata_sha256": "646454668ba9dc6540c5a787dba3e5845804423f99b00eabba4ad3da9195c1dc",
+  "corpus_sha256": "231a4ae7af832f2d7261dcb9fefbac053905ad32e6428a2b15396b4cb7206fe8"
+}

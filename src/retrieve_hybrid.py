@@ -11,6 +11,13 @@ from dotenv import load_dotenv
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer
 
+try:
+    from .artifacts import MANIFEST_NAME, validate_artifacts
+    from .retrieval_utils import query_references_unknown_year
+except ImportError:
+    from artifacts import MANIFEST_NAME, validate_artifacts
+    from retrieval_utils import query_references_unknown_year
+
 # ------------------------------------------------
 # Paths
 # ------------------------------------------------
@@ -23,6 +30,7 @@ EMBEDDING_MODEL = os.getenv(
     "EMBEDDING_MODEL",
     "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
 )
+MIN_VECTOR_SIMILARITY = float(os.getenv("MIN_VECTOR_SIMILARITY", "0.25"))
 
 @lru_cache(maxsize=1)
 def load_chunks_df():
@@ -63,31 +71,54 @@ def load_model():
 # ------------------------------------------------
 # Hybrid Search
 # ------------------------------------------------
-def hybrid_search(query, top_k=5):
+def hybrid_search(query, top_k=5, max_chunks_per_doc=2):
     df = load_chunks_df()
+    if (
+        not str(query).strip()
+        or top_k <= 0
+        or df.empty
+        or query_references_unknown_year(query, df)
+    ):
+        return df.iloc[0:0].copy()
     bm25 = load_bm25()
     index = load_index()
+    validate_artifacts(
+        index,
+        df,
+        embedding_model=EMBEDDING_MODEL,
+        manifest_path=ARTIFACT_DIR / MANIFEST_NAME,
+        metadata_path=ARTIFACT_DIR / "embedding_metadata.parquet",
+    )
     model = load_model()
     tokenized_query = tokenize(query)
     bm25_scores = bm25.get_scores(tokenized_query)
 
-    bm25_max = max(bm25_scores) if max(bm25_scores) > 0 else 1
+    bm25_max = float(np.max(bm25_scores)) if np.max(bm25_scores) > 0 else 1.0
     bm25_indices = np.argsort(bm25_scores)[::-1][:40]
 
     query_vec = model.encode([query], normalize_embeddings=True).astype("float32")
-    vector_scores, vector_indices = index.search(query_vec, 40)
-    vector_sim = vector_scores[0]
+    vector_scores, vector_indices = index.search(query_vec, min(40, len(df)))
+    valid = vector_indices[0] >= 0
+    vector_ids = vector_indices[0][valid]
+    vector_sim = vector_scores[0][valid]
     if getattr(index, "metric_type", faiss.METRIC_L2) == faiss.METRIC_L2:
         vector_sim = -vector_sim
 
-    combined_indices = set(bm25_indices.tolist()) | set(vector_indices[0].tolist())
+    if vector_sim.size == 0 or float(np.max(vector_sim)) < MIN_VECTOR_SIMILARITY:
+        return df.iloc[0:0].copy()
+
+    combined_indices = set(bm25_indices.tolist()) | set(vector_ids.tolist())
     results = df.iloc[list(combined_indices)].copy()
 
     results["bm25_score"] = results.index.map(lambda i: bm25_scores[i] / bm25_max)
-    vector_dict = {idx: sim for idx, sim in zip(vector_indices[0], vector_sim)}
-    results["vector_score"] = results.index.map(lambda i: vector_dict.get(i, 0))
+    vector_dict = {idx: sim for idx, sim in zip(vector_ids, vector_sim)}
+    vector_floor = min(0.0, float(np.min(vector_sim)))
+    results["vector_score"] = results.index.map(lambda i: vector_dict.get(i, vector_floor))
 
     results["hybrid_score"] = 0.5 * results["bm25_score"] + 0.5 * results["vector_score"]
     results = results.sort_values("hybrid_score", ascending=False)
+    if max_chunks_per_doc > 0:
+        results["_doc_rank"] = results.groupby("doc_id").cumcount()
+        results = results[results["_doc_rank"] < max_chunks_per_doc].drop(columns="_doc_rank")
 
     return results.head(top_k).copy()

@@ -11,17 +11,28 @@ dependencies = [
     "pandas (>=2.3.0,<3.0.0)",
     "numpy (>=2.4.2,<3.0.0)",
     "scikit-learn (>=1.8.0,<2.0.0)",
-    "matplotlib (>=3.10.8,<4.0.0)",
     "pymupdf (>=1.27.1,<2.0.0)",
     "pyarrow (>=23.0.1,<24.0.0)",
-    "ipykernel (>=7.2.0,<8.0.0)",
     "rank-bm25 (>=0.2.2,<0.3.0)",
     "sentence-transformers (>=5.2.3,<6.0.0)",
     "faiss-cpu (>=1.13.2,<2.0.0)",
-    "dotenv (>=0.9.9,<0.10.0)",
+    "python-dotenv (>=1.2.2,<2.0.0)",
     "openai (>=2.24.0,<3.0.0)",
     "streamlit (>=1.54.0,<2.0.0)"
 ]
+
+[dependency-groups]
+dev = [
+    "ipykernel (>=7.2.0,<8.0.0)",
+    "matplotlib (>=3.10.8,<4.0.0)",
+    "pytest (>=8.4.0,<9.0.0)",
+]
+
+[tool.poetry]
+package-mode = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
 
 
 [build-system]

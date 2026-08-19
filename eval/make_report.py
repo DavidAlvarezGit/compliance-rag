@@ -56,12 +56,12 @@ def main() -> None:
     rag_recall = df["rag_keyword_recall"].mean()
     base_recall = df["baseline_keyword_recall"].mean()
     rag_refusal = df["rag_refusal_correct"].mean()
-    base_refusal = df["baseline_refusal_correct"].mean()
     rag_citation = df["rag_has_citation"].mean()
     rag_latency = df["rag_latency_s"].mean()
     base_latency = df["baseline_latency_s"].mean()
-    rag_wins = (df["rag_keyword_recall"] > df["baseline_keyword_recall"]).mean()
-    ties = (df["rag_keyword_recall"] == df["baseline_keyword_recall"]).mean()
+    answerable = df[df["is_answerable"].astype(int) == 1]
+    rag_wins = (answerable["rag_keyword_recall"] > answerable["baseline_keyword_recall"]).mean()
+    ties = (answerable["rag_keyword_recall"] == answerable["baseline_keyword_recall"]).mean()
 
     # Examples
     rag_better = df[df["rag_keyword_recall"] > df["baseline_keyword_recall"]]
@@ -83,7 +83,6 @@ def main() -> None:
         f"- RAG win rate (keyword recall): {rag_wins:.1%}",
         f"- Tie rate: {ties:.1%}",
         f"- Refusal accuracy (RAG): {rag_refusal:.1%}",
-        f"- Refusal accuracy (Baseline): {base_refusal:.1%}",
         f"- RAG citation presence: {rag_citation:.1%}",
         f"- Avg latency RAG (s): {rag_latency:.3f}",
         f"- Avg latency Baseline (s): {base_latency:.3f}",

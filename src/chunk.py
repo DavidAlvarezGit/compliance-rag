@@ -130,15 +130,14 @@ def build_chunks_for_doc(group: pd.DataFrame) -> list[dict[str, object]]:
             continue
 
         chunk_text = "\n\n".join(chunk_parts).strip()
-        if len(chunk_text) >= MIN_CHARS:
-            chunks.append(
-                make_chunk_record(
-                    group=group,
-                    page_start=page_start,
-                    page_end=page_end,
-                    text=chunk_text,
-                )
+        chunks.append(
+            make_chunk_record(
+                group=group,
+                page_start=page_start,
+                page_end=page_end,
+                text=chunk_text,
             )
+        )
 
         if end >= len(units):
             break
@@ -146,7 +145,26 @@ def build_chunks_for_doc(group: pd.DataFrame) -> list[dict[str, object]]:
         overlap = min(OVERLAP_PARAGRAPHS, len(chunk_parts) - 1)
         start = end - overlap if overlap > 0 else end
 
-    return [chunk for chunk in chunks if len(str(chunk["chunk_text"]).strip()) >= MIN_CHARS]
+    # Preserve every source passage. Short chunks are merged into the preceding
+    # chunk where possible; otherwise they remain searchable as small chunks.
+    merged: list[dict[str, object]] = []
+    for chunk in chunks:
+        text = str(chunk["chunk_text"]).strip()
+        if merged and len(text) < MIN_CHARS:
+            previous = str(merged[-1]["chunk_text"]).strip()
+            parts = text.split("\n\n")
+            if parts and previous.endswith(parts[0]):
+                parts = parts[1:]
+            novel_text = "\n\n".join(parts).strip()
+            combined = f"{previous}\n\n{novel_text}".strip() if novel_text else previous
+            if len(combined) <= MAX_CHARS:
+                merged[-1]["chunk_text"] = combined
+                merged[-1]["page_end"] = chunk["page_end"]
+                continue
+            if novel_text:
+                chunk["chunk_text"] = novel_text
+        merged.append(chunk)
+    return merged
 
 
 def main() -> None:

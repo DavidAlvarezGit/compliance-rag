@@ -19,7 +19,7 @@ Required columns:
 ## 2) Run A/B generation
 
 ```powershell
-poetry run python eval/run_ab.py
+poetry run python -m eval.run_ab
 ```
 
 This creates `eval/results.csv`.
@@ -27,7 +27,7 @@ This creates `eval/results.csv`.
 ## 3) Score results
 
 ```powershell
-poetry run python eval/score_ab.py
+poetry run python -m eval.score_ab
 ```
 
 This creates `eval/results_scored.csv` and prints a summary.
@@ -35,7 +35,7 @@ This creates `eval/results_scored.csv` and prints a summary.
 ## 4) Build shareable markdown report
 
 ```powershell
-poetry run python eval/make_report.py
+poetry run python -m eval.make_report
 ```
 
 This creates `eval/report.md`.
