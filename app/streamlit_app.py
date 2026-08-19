@@ -746,20 +746,21 @@ if submitted:
         allowed_topics = set(topic_filter)
         allowed_languages = set(language_filter)
         try:
-            candidates = retrieve_candidates(
-                query=query.strip(),
-                chunks_df=chunks_df,
-                bm25=bm25,
-                embedder=embedder,
-                index=faiss_index,
-                bm25_k=int(bm25_k),
-                vec_k=int(vec_k),
-                w_bm25=float(w_bm25),
-                w_vec=float(1.0 - w_bm25),
-                allowed_topics=allowed_topics,
-                allowed_languages=allowed_languages,
-                max_chunks_per_doc=int(max_chunks_per_doc),
-            )
+            with st.spinner("Retrieving evidence..."):
+                candidates = retrieve_candidates(
+                    query=query.strip(),
+                    chunks_df=chunks_df,
+                    bm25=bm25,
+                    embedder=embedder,
+                    index=faiss_index,
+                    bm25_k=int(bm25_k),
+                    vec_k=int(vec_k),
+                    w_bm25=float(w_bm25),
+                    w_vec=float(1.0 - w_bm25),
+                    allowed_topics=allowed_topics,
+                    allowed_languages=allowed_languages,
+                    max_chunks_per_doc=int(max_chunks_per_doc),
+                )
         except Exception as exc:
             st.error(f"Retrieval failed: {exc}")
             candidates = []
@@ -771,16 +772,17 @@ if submitted:
             )
         else:
             try:
-                answer, verification = generate_answer(
-                    client=load_openai_client(),
-                    model=model.strip(),
-                    query=query.strip(),
-                    chunks=candidates,
-                    doc_lookup=doc_lookup,
-                    temperature=float(temperature),
-                    max_chunks_for_llm=int(max_chunks_for_llm),
-                    max_tokens=int(max_tokens),
-                )
+                with st.spinner("Drafting answer..."):
+                    answer, verification = generate_answer(
+                        client=load_openai_client(),
+                        model=model.strip(),
+                        query=query.strip(),
+                        chunks=candidates,
+                        doc_lookup=doc_lookup,
+                        temperature=float(temperature),
+                        max_chunks_for_llm=int(max_chunks_for_llm),
+                        max_tokens=int(max_tokens),
+                    )
             except Exception as exc:
                 st.error(f"Answer generation failed: {exc}")
                 answer = ""
