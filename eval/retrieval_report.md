@@ -21,7 +21,7 @@
 
 ## Latency
 
-- Mean / p95: 0.053s / 0.067s
+- Mean / p95: 0.068s / 0.093s
 
 Metrics are document-level. Multi-document questions receive full recall only when all labeled sources are retrieved.
 Unanswerable questions measure whether the retrieval relevance gate returns no evidence.

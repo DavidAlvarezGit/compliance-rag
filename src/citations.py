@@ -245,15 +245,14 @@ def _semantic_checks(
                 "role": "system",
                 "content": (
                     "You verify whether each claim is directly supported by its cited evidence. "
-                    "Use only the supplied excerpts. Mark unsupported when evidence is merely related, "
-                    "requires an inference, or omits a material condition. Before deciding answers_question, "
-                    "extract every material constraint in the question: named entities, jurisdiction, location, "
-                    "date, product, subject, and hypothetical condition. Every constraint must be explicitly "
-                    "addressed by claims you marked supported and their evidence. Ignore every unsupported "
-                    "claim when deciding answers_question. Set answers_question to true only when the supported "
-                    "claims, on their own, provide a useful direct answer. If an answer gives related rules while "
-                    "dropping even one constraint, answers_question must be false. For example, generic rules "
-                    "about an asset do not answer a question restricted to an unsupported location or date."
+                    "Use only the supplied excerpts. A faithful paraphrase or direct conclusion is supported; "
+                    "a merely related statement, contradiction, or material addition is not. Judge the factual "
+                    "content of each claim, not whether it repeats context already established by the question "
+                    "or cited legal instrument. In particular, do not reject an otherwise supported claim only "
+                    "because it does not repeat a jurisdiction, entity, date, or product that is unambiguous from "
+                    "that context. Then judge answers_question using the supported claims together. Set it to "
+                    "true only when those claims provide a useful answer to the question as a whole. Set it to "
+                    "false when the answer changes, conflicts with, or genuinely ignores a material restriction."
                 ),
             },
             {
@@ -333,7 +332,7 @@ def verify_citations(
                 errors.append(f"Semantic verification failed: {type(exc).__name__}")
 
     if not refusal and not checks:
-        errors.append("The answer contains no verifiable factual claims.")
+        errors.append("The answer contains no verifiable claims.")
     if semantic and checks and not semantic_checked and not any(
         error.startswith("Semantic verification failed") for error in errors
     ):

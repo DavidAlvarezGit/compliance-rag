@@ -58,6 +58,12 @@ def main() -> None:
     rag_completeness = df["rag_completeness_normalized"].mean()
     base_completeness = df["baseline_completeness_normalized"].mean()
     rag_refusal = df["rag_refusal_correct"].mean()
+    answerable = df["is_answerable"].astype(int) == 1
+    unsupported = ~answerable
+    unsupported_rag_refusal = df.loc[unsupported, "rag_refused"].mean()
+    unsupported_base_refusal = df.loc[unsupported, "baseline_refused"].mean()
+    answerable_rag_correctness = df.loc[answerable, "rag_correctness_normalized"].mean()
+    answerable_base_correctness = df.loc[answerable, "baseline_correctness_normalized"].mean()
     citation_coverage = df["citation_coverage"].mean()
     citation_provenance = df["citation_provenance_accuracy"].mean()
     citation_support = df["citation_support_rate"].mean()
@@ -85,7 +91,9 @@ def main() -> None:
         f"- Correctness (RAG / baseline): {rag_correctness:.3f} / {base_correctness:.3f}",
         f"- Completeness (RAG / baseline): {rag_completeness:.3f} / {base_completeness:.3f}",
         f"- Answerable-question RAG correctness win rate: {rag_wins:.1%}",
-        f"- Refusal accuracy (RAG): {rag_refusal:.1%}",
+        f"- Answerable correctness (RAG / baseline): {answerable_rag_correctness:.1%} / {answerable_base_correctness:.1%}",
+        f"- Unsupported-question refusal (RAG / baseline): {unsupported_rag_refusal:.1%} / {unsupported_base_refusal:.1%}",
+        f"- Correct answer/refusal behavior (RAG): {rag_refusal:.1%}",
         f"- Retrieval document recall@8: {retrieval_recall:.1%}",
         f"- Claim citation coverage: {citation_coverage:.1%}",
         f"- Citation provenance accuracy: {citation_provenance:.1%}",

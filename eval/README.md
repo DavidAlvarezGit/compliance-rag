@@ -23,7 +23,7 @@ Metrics are document-level recall@5, precision@5, MRR, nDCG@5, unsupported-quest
 
 ## Answer-quality benchmark (external API)
 
-`answer_questions.csv` contains 20 curated answer-quality questions with reference answers and expected source documents. Running this benchmark sends the questions and retrieved corpus excerpts to the configured OpenAI API.
+`answer_questions.csv` contains 50 curated answer-quality questions with reference answers and expected source documents. Running this benchmark sends the questions and retrieved corpus excerpts to the configured OpenAI API.
 
 ```powershell
 poetry run python -m eval.run_ab

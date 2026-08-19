@@ -13,13 +13,31 @@ This project is built for safer first-pass research. It:
 - searches a controlled collection of 22 regulatory documents;
 - combines exact-term and meaning-based search;
 - answers only from the passages it finds;
-- cites the document and page for each factual claim;
+- cites the document and page for each claim;
 - removes claims that the evidence does not support;
 - refuses to answer when the available material is not enough.
 
 It is a research aid, not a replacement for legal or compliance review.
 
-## Measured search results
+## Results
+
+### Answers
+
+The answer benchmark contains 50 questions: 36 answerable and 14 unsupported. It compares this project with the same model answering without retrieved documents.
+
+| Measure | This project | Model without retrieval |
+|---|---:|---:|
+| Overall correctness | 95.0% | 72.0% |
+| Overall completeness | 95.5% | 72.0% |
+| Correctness on answerable questions | 98.6% | 100% |
+| Unsupported questions refused | 85.7% | 0% |
+| Mean response time | 7.19 seconds | 4.87 seconds |
+
+The model without retrieval scored slightly higher on the answerable questions. This project scored higher overall because it refused 12 of 14 unsupported questions; the model without retrieval refused none. The two missed refusals and one partly answered supported question remain in the published results.
+
+For answerable questions, the system found 93.5% of the expected documents in its first eight results. All returned claims had citations, valid source pages, and evidence support in this run.
+
+### Search
 
 The search benchmark contains 40 questions: 30 answerable and 10 unsupported.
 
@@ -30,11 +48,11 @@ The search benchmark contains 40 questions: 30 answerable and 10 unsupported.
 | Mean reciprocal rank | 0.712 |
 | nDCG@5 | 0.759 |
 | Unsupported questions rejected during search | 50% |
-| Mean warm search time | about 0.05 seconds |
+| Mean warm search time | about 0.07 seconds |
 
 Unsupported questions that pass the search stage still go through evidence validation before an answer can be shown.
 
-The benchmark labels are curated and review-ready, but they have not been independently approved by a banking-regulation specialist.
+These are small regression benchmarks, not proof of production accuracy. The labels have not been independently approved by a banking-regulation specialist, and answerable responses are scored by a language model.
 
 ## How it works
 
@@ -93,7 +111,7 @@ poetry run python src/index_embeddings.py
 
 ## Tests and evaluation
 
-Run the 17 automated tests and the local search-quality gate:
+Run the 18 automated tests and the local search-quality gate:
 
 ```powershell
 poetry run pytest -q
@@ -113,6 +131,7 @@ The answer benchmark sends its questions, reference answers, and retrieved regul
 Detailed results are available in:
 
 - [search benchmark](eval/retrieval_report.md)
+- [answer benchmark](eval/report.md)
 - [evaluation notes](eval/README.md)
 
 ## Project structure

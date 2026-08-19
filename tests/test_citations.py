@@ -201,8 +201,11 @@ def test_semantic_verifier_deduplicates_shared_evidence() -> None:
         question="What does the board oversee?",
     )
     request = json.loads(captured["messages"][1]["content"])
+    verifier_instructions = captured["messages"][0]["content"].lower()
 
     assert report.valid
     assert len(request["evidence"]) == 1
     assert request["claims"][0]["evidence_ids"] == ["E1"]
     assert request["claims"][1]["evidence_ids"] == ["E1"]
+    assert "not whether it repeats context" in verifier_instructions
+    assert "do not reject an otherwise supported claim" in verifier_instructions

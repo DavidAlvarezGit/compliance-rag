@@ -175,6 +175,16 @@ def main() -> None:
         "baseline_correctness": float(df["baseline_correctness_normalized"].mean()),
         "rag_completeness": float(df["rag_completeness_normalized"].mean()),
         "baseline_completeness": float(df["baseline_completeness_normalized"].mean()),
+        "answerable_rag_correctness": float(
+            df.loc[answerable, "rag_correctness_normalized"].mean()
+        ),
+        "answerable_baseline_correctness": float(
+            df.loc[answerable, "baseline_correctness_normalized"].mean()
+        ),
+        "unsupported_refusal_accuracy": float(df.loc[unsupported, "rag_refused"].mean()),
+        "unsupported_baseline_refusal_accuracy": float(
+            df.loc[unsupported, "baseline_refused"].mean()
+        ),
         "refusal_accuracy": float(df["rag_refusal_correct"].mean()),
         "retrieval_recall_at_8": float(df["retrieval_doc_recall"].mean()),
         "citation_coverage": float(df["citation_coverage"].mean()),
@@ -193,6 +203,7 @@ def main() -> None:
     print(f"Completeness (RAG):            {df['rag_completeness_normalized'].mean():.3f}")
     print(f"Completeness (Baseline):       {df['baseline_completeness_normalized'].mean():.3f}")
     print(f"Answerable RAG win rate:       {df['rag_wins_correctness'].mean():.1%}")
+    print(f"Unsupported refusal accuracy:  {df.loc[unsupported, 'rag_refused'].mean():.1%}")
     print(f"Refusal accuracy (RAG):        {df['rag_refusal_correct'].mean():.1%}")
     print(f"Retrieval document recall@8:   {df['retrieval_doc_recall'].mean():.1%}")
     print(f"Citation coverage:             {df['citation_coverage'].mean():.1%}")

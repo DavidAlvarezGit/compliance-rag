@@ -370,12 +370,13 @@ Audience: compliance officers, legal reviewers, and risk governance stakeholders
 Use only the context below.
 Answer in the same language as the user's question.
 If the context is insufficient, say that clearly and do not speculate.
-Refuse when the context does not explicitly cover every material entity, jurisdiction, location, date, product, and hypothetical condition in the question.
-Never answer a broader related topic by silently dropping a material qualifier from the question.
+Preserve the scope of the question and do not invent missing dates, jurisdictions, entities, products, or conditions.
+Context established by the question or cited legal instrument does not need to be repeated in every bullet.
 Do not add outside knowledge.
+Use faithful paraphrases and direct conclusions, but do not add unsupported details.
 Write only the directly supported points needed to answer the question, with at most 6 concise bullets.
 Do not add marginal details merely to reach a target number of bullets.
-Each bullet MUST contain exactly one factual sentence followed immediately by its citation.
+Each bullet MUST contain exactly one supported claim followed immediately by its citation.
 Do not write introductory text, conclusions, headings, or uncited factual statements.
 Do not combine separately sourced claims in one sentence.
 Use this exact citation format: (Source: DOC_ID pp.X-Y)
@@ -800,7 +801,7 @@ if submitted:
                     st.write(answer)
                     if verification.valid:
                         st.success(
-                            f"Verified {len(verification.claims)} factual claims against supplied citations."
+                            f"Verified {len(verification.claims)} claims against supplied evidence."
                         )
                     else:
                         verified_claims = getattr(verification, "verified_claims", [])
