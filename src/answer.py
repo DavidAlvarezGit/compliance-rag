@@ -25,6 +25,17 @@ class AnswerResult:
     verification: VerificationReport
 
 
+def select_verified_answer(
+    draft: str, report: VerificationReport, query: str
+) -> str:
+    """Return the full draft, a claim-filtered answer, or a safe refusal."""
+    if report.valid:
+        return draft
+    if report.can_return_partial:
+        return "\n".join(f"- {claim.text}" for claim in report.verified_claims)
+    return insufficient_evidence_message(query)
+
+
 def insufficient_evidence_message(query: str) -> str:
     french_markers = {"le", "la", "les", "des", "une", "quelles", "quel", "dans", "sur"}
     words = {word.strip(".,?!:;").lower() for word in query.split()}
@@ -81,7 +92,8 @@ Your task:
 - Do not infer or extrapolate beyond what is explicitly written.
 
 Output requirements:
-- Write 5-10 concise bullet points when the evidence is sufficient.
+- Write only the directly supported points needed to answer the question, with at most 6 concise bullets.
+- Do not add marginal details merely to reach a target number of bullets.
 - Each bullet MUST contain exactly one factual sentence followed immediately by its citation.
 - Do not write introductory text, conclusions, headings, or uncited factual statements.
 - Do not combine separately sourced claims in one sentence.
@@ -125,7 +137,7 @@ Sources:
         semantic=verify,
         question=query,
     )
-    answer = draft if report.valid else insufficient_evidence_message(query)
+    answer = select_verified_answer(draft, report, query)
     result = AnswerResult(answer=answer, draft_answer=draft, verification=report)
     return result if return_details else result.answer
 

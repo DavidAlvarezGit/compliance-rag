@@ -41,6 +41,34 @@ class VerificationReport:
     answer_relevance: bool | None = None
 
     @property
+    def verified_claims(self) -> list[ClaimCheck]:
+        """Claims that are safe to return independently."""
+        return [
+            claim
+            for claim in self.claims
+            if claim.citations and claim.provenance_valid and claim.supported is True
+        ]
+
+    @property
+    def rejected_claims(self) -> list[ClaimCheck]:
+        """Claims that failed citation provenance or semantic support."""
+        return [
+            claim
+            for claim in self.claims
+            if not (claim.citations and claim.provenance_valid and claim.supported is True)
+        ]
+
+    @property
+    def can_return_partial(self) -> bool:
+        """Whether a filtered answer remains relevant and contains verified claims."""
+        return (
+            not self.valid
+            and self.semantic_checked
+            and self.answer_relevance is True
+            and bool(self.verified_claims)
+        )
+
+    @property
     def citation_coverage(self) -> float | None:
         if not self.claims:
             return None if self.is_refusal else 0.0
@@ -64,6 +92,9 @@ class VerificationReport:
         payload["citation_coverage"] = self.citation_coverage
         payload["provenance_accuracy"] = self.provenance_accuracy
         payload["support_rate"] = self.support_rate
+        payload["verified_claim_count"] = len(self.verified_claims)
+        payload["rejected_claim_count"] = len(self.rejected_claims)
+        payload["can_return_partial"] = self.can_return_partial
         return payload
 
 
@@ -196,7 +227,9 @@ def _semantic_checks(
                     "requires an inference, or omits a material condition. Before deciding answers_question, "
                     "extract every material constraint in the question: named entities, jurisdiction, location, "
                     "date, product, subject, and hypothetical condition. Every constraint must be explicitly "
-                    "addressed by the claims and evidence. If an answer gives generally related rules while "
+                    "addressed by claims you marked supported and their evidence. Ignore every unsupported "
+                    "claim when deciding answers_question. Set answers_question to true only when the supported "
+                    "claims, on their own, provide a useful direct answer. If an answer gives related rules while "
                     "dropping even one constraint, answers_question must be false. For example, generic rules "
                     "about an asset do not answer a question restricted to an unsupported location or date."
                 ),
@@ -252,7 +285,7 @@ def verify_citations(
 
     semantic_checked = False
     answer_relevance: bool | None = None
-    if semantic and checks and all(check.provenance_valid for check in checks):
+    if semantic and checks:
         if client is None or not model:
             errors.append("Semantic verification was requested without a client and model.")
         else:

@@ -13,7 +13,9 @@ The project is designed for situations where a fluent answer is not enough. Comp
 - whether every factual claim is grounded;
 - and when the available evidence is too weak to answer safely.
 
-If those checks fail, the application shows an insufficient-evidence response instead of an unsupported draft. This is known as **fail-closed behavior**.
+If the complete draft does not pass, the application removes every rejected claim and can show only the independently verified claims when they still answer the question. If no useful verified answer remains, it shows an insufficient-evidence response. This is **claim-level fail-closed behavior**.
+
+The interface shows progress while it searches, reranks, drafts, and verifies. A successful response is then revealed gradually in a familiar chat-style animation. The unverified draft is never streamed to the user.
 
 ## 2. Problem Definition and Business Value
 
@@ -84,18 +86,21 @@ Before an answer is displayed, the verifier checks:
 
 This final check prevents a dangerous failure mode in which an answer is well cited but answers a broader, easier question than the one the user actually asked.
 
+For safety, progressive display begins only after verification. The application never exposes the unchecked draft: it displays either the fully verified answer, a filtered answer containing only supported claims, or an immediate refusal when no relevant supported answer remains.
+
 ## 4. Engineering Highlights
 
 The repository demonstrates more than a working interface. It includes:
 
 - modular ingestion, retrieval, reranking, generation, and verification components;
 - cached model and artifact loading;
+- stage-by-stage progress and safe post-verification response streaming;
 - explicit document, page, and index integrity contracts;
 - deterministic and model-based grounding checks;
 - English, French, paraphrase, multi-document, and unsupported test cases;
 - versioned quality thresholds enforced in CI;
 - machine-readable benchmark summaries and shareable reports;
-- 16 automated tests covering ingestion, retrieval, ranking, artifacts, citations, question relevance, and refusal behavior;
+- 18 automated tests covering ingestion, retrieval, ranking, artifacts, citations, question relevance, claim-level filtering, and refusal behavior;
 - transparent reporting of both improvements and tradeoffs.
 
 ## 5. Measured Results
@@ -171,6 +176,7 @@ What does the current corpus say about climate and nature-related financial risk
 - `RERANKER_MODEL`: cross-encoder model override
 - `RERANK_CANDIDATE_K`: interactive reranking pool; default `40`
 - `MIN_RERANK_SCORE`: top-passage relevance threshold; default `0.0`
+- `VERIFIED_STREAM_DELAY_SECONDS`: delay between displayed words after verification; default `0.018`
 
 ### Rebuild the corpus and indexes
 

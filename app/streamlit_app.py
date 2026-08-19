@@ -8,7 +8,7 @@ import unicodedata
 from html import escape
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Iterator, Optional
 
 import faiss
 import numpy as np
@@ -24,7 +24,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.artifacts import MANIFEST_NAME, validate_artifacts
-from src.answer import insufficient_evidence_message
+from src.answer import insufficient_evidence_message, select_verified_answer
 from src.citations import VerificationReport, verify_citations
 from src.rerank import has_relevant_passage, score_passages
 from src.retrieval_utils import (
@@ -53,6 +53,7 @@ INDEX_MANIFEST_PATH = os.getenv(
 )
 MIN_VECTOR_SIMILARITY = float(os.getenv("MIN_VECTOR_SIMILARITY", "0.25"))
 RERANK_CANDIDATE_K = int(os.getenv("RERANK_CANDIDATE_K", "40"))
+VERIFIED_STREAM_DELAY_SECONDS = float(os.getenv("VERIFIED_STREAM_DELAY_SECONDS", "0.018"))
 
 TOPIC_LABELS = {
     "capital_requirements_framework": "Capital Requirements",
@@ -345,6 +346,14 @@ def build_context(chunks: list[Chunk], doc_lookup: dict[str, dict[str, str]], ma
     return "\n\n---\n\n".join(parts)
 
 
+def stream_verified_text(text: str, delay_seconds: float = VERIFIED_STREAM_DELAY_SECONDS) -> Iterator[str]:
+    """Reveal only already-verified text with a ChatGPT-style typing effect."""
+    for token in re.findall(r"\S+\s*", text):
+        yield token
+        if delay_seconds > 0:
+            time.sleep(delay_seconds)
+
+
 def generate_answer(
     client: OpenAI,
     model: str,
@@ -354,6 +363,7 @@ def generate_answer(
     temperature: float,
     max_chunks_for_llm: int,
     max_tokens: int,
+    on_stage: Callable[[str], None] | None = None,
 ) -> tuple[str, VerificationReport]:
     context = build_context(chunks, doc_lookup=doc_lookup, max_chunks=max_chunks_for_llm)
     prompt = f"""
@@ -365,7 +375,8 @@ If the context is insufficient, say that clearly and do not speculate.
 Refuse when the context does not explicitly cover every material entity, jurisdiction, location, date, product, and hypothetical condition in the question.
 Never answer a broader related topic by silently dropping a material qualifier from the question.
 Do not add outside knowledge.
-Write 5-10 concise bullet points when the evidence is sufficient.
+Write only the directly supported points needed to answer the question, with at most 6 concise bullets.
+Do not add marginal details merely to reach a target number of bullets.
 Each bullet MUST contain exactly one factual sentence followed immediately by its citation.
 Do not write introductory text, conclusions, headings, or uncited factual statements.
 Do not combine separately sourced claims in one sentence.
@@ -395,6 +406,8 @@ QUESTION:
         ],
     )
     draft = response.choices[0].message.content or ""
+    if on_stage:
+        on_stage("Checking citations, source pages, claim support, and question relevance...")
     evidence = chunks[:max_chunks_for_llm]
     report = verify_citations(
         draft,
@@ -404,7 +417,7 @@ QUESTION:
         semantic=True,
         question=query,
     )
-    answer = draft if report.valid else insufficient_evidence_message(query)
+    answer = select_verified_answer(draft, report, query)
     return answer, report
 
 
@@ -741,64 +754,100 @@ if submitted:
     else:
         allowed_topics = set(topic_filter)
         allowed_languages = set(language_filter)
+        progress = st.status("Preparing an evidence-grounded response...", expanded=True)
+        progress.write("Searching the regulatory corpus and reranking candidate passages...")
         retrieval_started = time.time()
         try:
-            with st.spinner("Retrieving evidence..."):
-                candidates = retrieve_candidates(
-                    query=query.strip(),
-                    chunks_df=chunks_df,
-                    bm25=bm25,
-                    embedder=embedder,
-                    index=faiss_index,
-                    bm25_k=int(bm25_k),
-                    vec_k=int(vec_k),
-                    w_bm25=float(w_bm25),
-                    w_vec=float(1.0 - w_bm25),
-                    allowed_topics=allowed_topics,
-                    allowed_languages=allowed_languages,
-                    max_chunks_per_doc=int(max_chunks_per_doc),
-                    use_reranker=bool(use_reranker),
-                )
+            candidates = retrieve_candidates(
+                query=query.strip(),
+                chunks_df=chunks_df,
+                bm25=bm25,
+                embedder=embedder,
+                index=faiss_index,
+                bm25_k=int(bm25_k),
+                vec_k=int(vec_k),
+                w_bm25=float(w_bm25),
+                w_vec=float(1.0 - w_bm25),
+                allowed_topics=allowed_topics,
+                allowed_languages=allowed_languages,
+                max_chunks_per_doc=int(max_chunks_per_doc),
+                use_reranker=bool(use_reranker),
+            )
             retrieval_latency = time.time() - retrieval_started
         except Exception as exc:
+            progress.update(label="Evidence retrieval failed", state="error", expanded=True)
             st.error(f"Retrieval failed: {exc}")
             candidates = []
             retrieval_latency = 0.0
 
         if not candidates:
+            progress.update(label="No sufficiently relevant evidence found", state="error", expanded=False)
             st.warning(
                 "No sufficiently relevant evidence was found. Clear topic/language filters or "
                 "try a question that is directly covered by the document register."
             )
         else:
+            progress.write(
+                f"Selected {min(len(candidates), int(max_chunks_for_llm))} passages in "
+                f"{retrieval_latency:.2f}s; drafting the response..."
+            )
             try:
-                with st.spinner("Drafting answer..."):
-                    answer, verification = generate_answer(
-                        client=load_openai_client(),
-                        model=model.strip(),
-                        query=query.strip(),
-                        chunks=candidates,
-                        doc_lookup=doc_lookup,
-                        temperature=float(temperature),
-                        max_chunks_for_llm=int(max_chunks_for_llm),
-                        max_tokens=int(max_tokens),
-                    )
+                answer, verification = generate_answer(
+                    client=load_openai_client(),
+                    model=model.strip(),
+                    query=query.strip(),
+                    chunks=candidates,
+                    doc_lookup=doc_lookup,
+                    temperature=float(temperature),
+                    max_chunks_for_llm=int(max_chunks_for_llm),
+                    max_tokens=int(max_tokens),
+                    on_stage=progress.write,
+                )
             except Exception as exc:
+                progress.update(label="Answer generation failed", state="error", expanded=True)
                 st.error(f"Answer generation failed: {exc}")
                 answer = ""
                 verification = None
 
             if answer:
+                if verification and verification.is_refusal:
+                    progress.update(
+                        label="Insufficient evidence for a supported answer",
+                        state="error",
+                        expanded=False,
+                    )
+                elif verification and verification.valid:
+                    progress.update(label="Verified response ready", state="complete", expanded=False)
+                elif verification and verification.can_return_partial:
+                    progress.update(
+                        label="Verified response ready; unsupported claims removed",
+                        state="complete",
+                        expanded=False,
+                    )
+                else:
+                    progress.update(
+                        label="Draft rejected; safe refusal returned", state="error", expanded=False
+                    )
                 st.caption(
                     f"Prepared from {min(len(candidates), int(max_chunks_for_llm))} supporting passages in {retrieval_latency:.2f}s retrieval time."
                 )
                 st.markdown("### Compliance Response")
-                st.write(answer)
-                if verification and verification.valid:
-                    st.success(
-                        f"Verified {len(verification.claims)} factual claims against supplied citations."
-                    )
+                if verification and verification.is_refusal:
+                    st.write(answer)
+                    st.warning("The retrieved sources were insufficient for a supported answer.")
+                elif verification and (verification.valid or verification.can_return_partial):
+                    st.write_stream(stream_verified_text(answer))
+                    if verification.valid:
+                        st.success(
+                            f"Verified {len(verification.claims)} factual claims against supplied citations."
+                        )
+                    else:
+                        st.warning(
+                            f"Showing {len(verification.verified_claims)} verified claims; "
+                            f"removed {len(verification.rejected_claims)} unsupported or invalid claims."
+                        )
                 elif verification:
+                    st.write(answer)
                     st.warning("The draft failed citation verification and was replaced with a refusal.")
                     with st.expander("Citation verification details"):
                         for error in verification.errors:

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import pandas as pd
 
+from src.answer import select_verified_answer
 from src.citations import extract_claims, parse_citations, verify_citations
 
 
@@ -82,4 +83,83 @@ def test_material_question_constraint_failure_invalidates_supported_claims() -> 
 
     assert not report.valid
     assert report.answer_relevance is False
+    assert not report.can_return_partial
+    assert select_verified_answer(answer, report, "What rules apply on Mars?").startswith(
+        "The provided sources do not support"
+    )
     assert any("does not address the question" in error for error in report.errors)
+
+
+def test_unsupported_claim_is_removed_while_verified_claim_survives() -> None:
+    payload = {
+        "answers_question": True,
+        "answer_reason": "The supported claim answers the question.",
+        "claims": [
+            {"claim_index": 0, "supported": True, "reason": "Directly stated."},
+            {"claim_index": 1, "supported": False, "reason": "Not stated."},
+        ],
+    }
+    response = SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(payload)))]
+    )
+    client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=lambda **_: response))
+    )
+    supported = (
+        "The board oversees risk governance and internal controls. "
+        "(Source: governance-doc pp.10-12)"
+    )
+    unsupported = "The board must meet every week. (Source: governance-doc pp.10-12)"
+    draft = f"- {supported}\n- {unsupported}"
+
+    report = verify_citations(
+        draft,
+        evidence(),
+        client=client,
+        model="fake-verifier",
+        semantic=True,
+        question="What does the board oversee?",
+    )
+    answer = select_verified_answer(draft, report, "What does the board oversee?")
+
+    assert not report.valid
+    assert report.can_return_partial
+    assert len(report.verified_claims) == 1
+    assert len(report.rejected_claims) == 1
+    assert supported in answer
+    assert unsupported not in answer
+
+
+def test_invalid_citation_does_not_block_verification_of_other_claims() -> None:
+    payload = {
+        "answers_question": True,
+        "answer_reason": "The valid claim answers the question.",
+        "claims": [
+            {"claim_index": 0, "supported": True, "reason": "Directly stated."},
+            {"claim_index": 1, "supported": False, "reason": "No supplied evidence."},
+        ],
+    }
+    response = SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(payload)))]
+    )
+    client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=lambda **_: response))
+    )
+    supported = (
+        "The board oversees risk governance and internal controls. "
+        "(Source: governance-doc pp.10-12)"
+    )
+    draft = f"- {supported}\n- The board must meet every week."
+
+    report = verify_citations(
+        draft,
+        evidence(),
+        client=client,
+        model="fake-verifier",
+        semantic=True,
+        question="What does the board oversee?",
+    )
+
+    assert report.semantic_checked
+    assert report.can_return_partial
+    assert select_verified_answer(draft, report, "What does the board oversee?") == f"- {supported}"
