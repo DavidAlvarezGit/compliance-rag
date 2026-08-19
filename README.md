@@ -1,6 +1,6 @@
 # Banking Regulation Compliance Assistant
 
-Ask questions about Swiss banking regulation in English or French and get answers linked to the source document and page. Switzerland is the default jurisdiction unless the question names another one; Basel standards are distinguished from binding Swiss rules.
+Ask questions about Swiss banking regulation in English or French and receive clear, source-grounded answers with direct references to the relevant document and page. Switzerland is treated as the default jurisdiction unless another jurisdiction is specified. The assistant clearly distinguishes between binding Swiss regulatory requirements and international standards or guidance, including the Basel framework.
 
 **Live demo:** https://compliance-rag.streamlit.app/
 
@@ -8,16 +8,27 @@ Ask questions about Swiss banking regulation in English or French and get answer
 
 Regulatory documents are long and difficult to search. A normal language model can answer quickly, but it may use outside knowledge or state something that the source does not support.
 
-This project is built for safer first-pass research. It:
+This project:
 
-- searches a controlled collection of 22 regulatory documents;
+- searches through a collection of 22 regulatory documents;
 - combines exact-term and meaning-based search;
 - answers only from the passages it finds;
 - cites the document and page for each claim;
 - removes claims that the evidence does not support;
 - refuses to answer when the available material is not enough.
 
-It is a research aid, not a replacement for legal or compliance review.
+It is however not a replacement for legal or compliance review.
+
+## How it works
+
+1. PDF pages are extracted and split into passages while keeping the document ID and page range.
+2. BM25 finds exact regulatory terms.
+3. Multilingual embeddings find passages with similar meaning in English and French.
+4. The two search scores are combined and the strongest passages are sent to the language model.
+5. The model writes short answers with document and page citations.
+6. A final check confirms that each claim is cited, supported by the cited text, and relevant to the question.
+
+If one claim fails, it is removed. If the remaining claims no longer answer the question, the application returns an insufficient-evidence message.
 
 ## Results
 
@@ -51,19 +62,6 @@ The search benchmark contains 40 questions: 30 answerable and 10 unsupported.
 | Mean warm search time | about 0.07 seconds |
 
 Unsupported questions that pass the search stage still go through evidence validation before an answer can be shown.
-
-These are small regression benchmarks, not proof of production accuracy. The labels have not been independently approved by a banking-regulation specialist, and answerable responses are scored by a language model.
-
-## How it works
-
-1. PDF pages are extracted and split into passages while keeping the document ID and page range.
-2. BM25 finds exact regulatory terms.
-3. Multilingual embeddings find passages with similar meaning in English and French.
-4. The two search scores are combined and the strongest passages are sent to the language model.
-5. The model writes short answers with document and page citations.
-6. A final check confirms that each claim is cited, supported by the cited text, and relevant to the question.
-
-If one claim fails, it is removed. If the remaining claims no longer answer the question, the application returns an insufficient-evidence message.
 
 ## Example questions
 
@@ -154,8 +152,6 @@ Before production use, the project would need:
 - independent review by regulatory specialists;
 - a larger and more adversarial test set;
 - authentication and access control;
-- audit logs and evidence-retention rules;
 - monitoring for quality, latency, and cost;
 - a deployment designed for multiple users.
 
-Final regulatory conclusions should always be reviewed by a qualified professional.
