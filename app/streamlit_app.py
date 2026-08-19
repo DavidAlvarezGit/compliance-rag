@@ -3,12 +3,11 @@
 import os
 import re
 import sys
-import time
 import unicodedata
 from html import escape
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 import faiss
 import numpy as np
@@ -363,7 +362,6 @@ def generate_answer(
     temperature: float,
     max_chunks_for_llm: int,
     max_tokens: int,
-    on_stage: Callable[[str], None] | None = None,
 ) -> tuple[str, VerificationReport]:
     context = build_context(chunks, doc_lookup=doc_lookup, max_chunks=max_chunks_for_llm)
     prompt = f"""
@@ -406,8 +404,6 @@ QUESTION:
         ],
     )
     draft = response.choices[0].message.content or ""
-    if on_stage:
-        on_stage("Checking citations, source pages, claim support, and question relevance...")
     evidence = chunks[:max_chunks_for_llm]
     report = verify_citations(
         draft,
@@ -749,9 +745,6 @@ if submitted:
     else:
         allowed_topics = set(topic_filter)
         allowed_languages = set(language_filter)
-        progress = st.status("Preparing an evidence-grounded response...", expanded=True)
-        progress.write("Searching the regulatory corpus with keyword and semantic retrieval...")
-        retrieval_started = time.time()
         try:
             candidates = retrieve_candidates(
                 query=query.strip(),
@@ -767,24 +760,16 @@ if submitted:
                 allowed_languages=allowed_languages,
                 max_chunks_per_doc=int(max_chunks_per_doc),
             )
-            retrieval_latency = time.time() - retrieval_started
         except Exception as exc:
-            progress.update(label="Evidence retrieval failed", state="error", expanded=True)
             st.error(f"Retrieval failed: {exc}")
             candidates = []
-            retrieval_latency = 0.0
 
         if not candidates:
-            progress.update(label="No sufficiently relevant evidence found", state="error", expanded=False)
             st.warning(
                 "No sufficiently relevant evidence was found. Clear topic/language filters or "
                 "try a question that is directly covered by the document register."
             )
         else:
-            progress.write(
-                f"Selected {min(len(candidates), int(max_chunks_for_llm))} passages in "
-                f"{retrieval_latency:.2f}s; drafting the response..."
-            )
             try:
                 answer, verification = generate_answer(
                     client=load_openai_client(),
@@ -795,10 +780,8 @@ if submitted:
                     temperature=float(temperature),
                     max_chunks_for_llm=int(max_chunks_for_llm),
                     max_tokens=int(max_tokens),
-                    on_stage=progress.write,
                 )
             except Exception as exc:
-                progress.update(label="Answer generation failed", state="error", expanded=True)
                 st.error(f"Answer generation failed: {exc}")
                 answer = ""
                 verification = None
@@ -806,27 +789,6 @@ if submitted:
             if answer:
                 partial_answer_available = bool(
                     verification and getattr(verification, "can_return_partial", False)
-                )
-                if verification and verification.is_refusal:
-                    progress.update(
-                        label="Insufficient evidence for a supported answer",
-                        state="error",
-                        expanded=False,
-                    )
-                elif verification and verification.valid:
-                    progress.update(label="Verified response ready", state="complete", expanded=False)
-                elif partial_answer_available:
-                    progress.update(
-                        label="Verified response ready; unsupported claims removed",
-                        state="complete",
-                        expanded=False,
-                    )
-                else:
-                    progress.update(
-                        label="Draft rejected; safe refusal returned", state="error", expanded=False
-                    )
-                st.caption(
-                    f"Prepared from {min(len(candidates), int(max_chunks_for_llm))} supporting passages in {retrieval_latency:.2f}s retrieval time."
                 )
                 st.markdown("### Compliance Response")
                 if verification and verification.is_refusal:
