@@ -12,7 +12,7 @@ Run the benchmark and its regression gate:
 poetry run python -m eval.run_retrieval_benchmark --check
 ```
 
-It compares hybrid BM25 + FAISS retrieval with and without cross-encoder reranking. Outputs:
+It evaluates the production hybrid BM25 + FAISS retrieval pipeline. Outputs:
 
 - `retrieval_results.csv`: per-question rankings, metrics, and latency
 - `retrieval_summary.json`: machine-readable aggregate results
@@ -31,7 +31,7 @@ poetry run python -m eval.score_ab --check
 poetry run python -m eval.make_report
 ```
 
-The benchmark compares the reranked, citation-verified RAG pipeline with the same chat model without retrieval. It measures:
+The benchmark compares the hybrid, citation-verified RAG pipeline with the same chat model without retrieval. It measures:
 
 - LLM-judged factual correctness and completeness for answerable questions (0-4 rubric)
 - deterministic unsupported-question scoring (canonical refusal = 4; substantive answer = 0)

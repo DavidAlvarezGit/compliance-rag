@@ -8,7 +8,7 @@ import unicodedata
 from html import escape
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterator, Optional
+from typing import Callable, Optional
 
 import faiss
 import numpy as np
@@ -25,7 +25,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.artifacts import MANIFEST_NAME, validate_artifacts
 from src.citations import VerificationReport, verify_citations
-from src.rerank import has_relevant_passage, score_passages
 from src.retrieval_utils import (
     filter_candidates,
     map_vector_results,
@@ -51,8 +50,6 @@ INDEX_MANIFEST_PATH = os.getenv(
     "INDEX_MANIFEST_PATH", str(BASE_DIR / "data" / "artifacts" / MANIFEST_NAME)
 )
 MIN_VECTOR_SIMILARITY = float(os.getenv("MIN_VECTOR_SIMILARITY", "0.25"))
-RERANK_CANDIDATE_K = int(os.getenv("RERANK_CANDIDATE_K", "24"))
-VERIFIED_STREAM_DELAY_SECONDS = float(os.getenv("VERIFIED_STREAM_DELAY_SECONDS", "0.018"))
 
 TOPIC_LABELS = {
     "capital_requirements_framework": "Capital Requirements",
@@ -110,7 +107,6 @@ class Chunk:
     bm25: float = 0.0
     vec: float = 0.0
     hybrid: float = 0.0
-    rerank: float = 0.0
 
 
 @dataclass
@@ -272,7 +268,6 @@ def retrieve_candidates(
     allowed_topics: set[str],
     allowed_languages: set[str],
     max_chunks_per_doc: int,
-    use_reranker: bool,
 ) -> list[Chunk]:
     candidate_df = filter_candidates(chunks_df, allowed_topics, allowed_languages)
     if candidate_df.empty:
@@ -337,17 +332,6 @@ def retrieve_candidates(
         rows.append(item)
 
     rows.sort(key=lambda item: item.hybrid, reverse=True)
-    if use_reranker and rows:
-        # Use a smaller interactive pool than the 40-candidate evaluation path.
-        # This cuts CPU latency while retaining the strongest hybrid candidates.
-        rows = rows[: max(1, RERANK_CANDIDATE_K)]
-        scores = score_passages(query, [row.chunk_text for row in rows])
-        for row, score in zip(rows, scores):
-            row.rerank = float(score)
-        rows.sort(key=lambda item: item.rerank, reverse=True)
-        if not has_relevant_passage(scores.tolist()):
-            return []
-
     deduped: list[Chunk] = []
     per_doc_counts: dict[str, int] = {}
     for row in rows:
@@ -368,14 +352,6 @@ def build_context(chunks: list[Chunk], doc_lookup: dict[str, dict[str, str]], ma
             f"(pp. {chunk.page_start}-{chunk.page_end})\n{chunk.chunk_text}"
         )
     return "\n\n---\n\n".join(parts)
-
-
-def stream_verified_text(text: str, delay_seconds: float = VERIFIED_STREAM_DELAY_SECONDS) -> Iterator[str]:
-    """Reveal only already-verified text with a ChatGPT-style typing effect."""
-    for token in re.findall(r"\S+\s*", text):
-        yield token
-        if delay_seconds > 0:
-            time.sleep(delay_seconds)
 
 
 def generate_answer(
@@ -743,11 +719,6 @@ with st.sidebar:
         bm25_k = st.slider("Keyword candidate pool", 10, 250, 40, 10)
         vec_k = st.slider("Vector candidate pool", 10, 250, 40, 10)
         w_bm25 = st.slider("Keyword weight", 0.0, 1.0, 0.45, 0.05)
-        use_reranker = st.checkbox("Use multilingual cross-encoder reranker", value=True)
-        st.caption(
-            f"Reranks the best {RERANK_CANDIDATE_K} candidates for higher-quality evidence; "
-            "this adds several seconds on CPU."
-        )
         max_chunks_for_llm = st.slider("Evidence passages sent to model", 3, 12, 8, 1)
         max_chunks_per_doc = st.slider("Max passages per source", 1, 5, 2, 1)
 
@@ -779,7 +750,7 @@ if submitted:
         allowed_topics = set(topic_filter)
         allowed_languages = set(language_filter)
         progress = st.status("Preparing an evidence-grounded response...", expanded=True)
-        progress.write("Searching the regulatory corpus and reranking candidate passages...")
+        progress.write("Searching the regulatory corpus with keyword and semantic retrieval...")
         retrieval_started = time.time()
         try:
             candidates = retrieve_candidates(
@@ -795,7 +766,6 @@ if submitted:
                 allowed_topics=allowed_topics,
                 allowed_languages=allowed_languages,
                 max_chunks_per_doc=int(max_chunks_per_doc),
-                use_reranker=bool(use_reranker),
             )
             retrieval_latency = time.time() - retrieval_started
         except Exception as exc:
@@ -863,7 +833,7 @@ if submitted:
                     st.write(answer)
                     st.warning("The retrieved sources were insufficient for a supported answer.")
                 elif verification and (verification.valid or partial_answer_available):
-                    st.write_stream(stream_verified_text(answer))
+                    st.write(answer)
                     if verification.valid:
                         st.success(
                             f"Verified {len(verification.claims)} factual claims against supplied citations."
@@ -888,10 +858,7 @@ if submitted:
                             title = source_title(doc_lookup, chunk.doc_id, chunk.topic)
                             score_text = ""
                             if show_scores:
-                                score_text = (
-                                    f" | hybrid={chunk.hybrid:.3f}"
-                                    + (f" | rerank={chunk.rerank:.3f}" if use_reranker else "")
-                                )
+                                score_text = f" | hybrid={chunk.hybrid:.3f}"
                             st.markdown(
                                 f"**{rank}. {title}** — `{chunk.doc_id}` "
                                 f"pp. {chunk.page_start}-{chunk.page_end}{score_text}"
@@ -902,7 +869,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 with st.expander("Operations and Document Register", expanded=False):
     st.markdown(
         """
-- Retrieval stack: BM25 + FAISS + multilingual cross-encoder reranking
+- Retrieval stack: hybrid BM25 + multilingual FAISS search
 - Embedding model: multilingual MiniLM
 - Source registry: manually curated `docs.csv`
 - Evidence packing: paragraph-based chunking with overlap

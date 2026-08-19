@@ -3,24 +3,14 @@
   "answerable_questions": 30,
   "unanswerable_questions": 10,
   "embedding_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-  "reranker_model": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
   "latency_mode": "warm-model steady state",
-  "baseline": {
+  "hybrid": {
     "recall_at_5": 0.9555555555555556,
     "precision_at_5": 0.2694444444444445,
     "mrr": 0.7122222222222221,
     "ndcg_at_5": 0.7586440729966243,
     "abstention_accuracy": 0.5,
-    "latency_mean_s": 0.06783332500017422,
-    "latency_p95_s": 0.09577260999831196
-  },
-  "reranked": {
-    "recall_at_5": 0.9111111111111111,
-    "precision_at_5": 0.2561111111111111,
-    "mrr": 0.7944444444444444,
-    "ndcg_at_5": 0.8050382546003861,
-    "abstention_accuracy": 0.8,
-    "latency_mean_s": 3.4250938600000156,
-    "latency_p95_s": 4.009494774998894
+    "latency_mean_s": 0.05349249499995494,
+    "latency_p95_s": 0.06696017500507878
   }
 }

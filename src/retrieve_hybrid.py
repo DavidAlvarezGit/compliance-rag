@@ -13,11 +13,9 @@ from sentence_transformers import SentenceTransformer
 
 try:
     from .artifacts import MANIFEST_NAME, validate_artifacts
-    from .rerank import has_relevant_passage, rerank_dataframe
     from .retrieval_utils import query_references_unknown_year
 except ImportError:
     from artifacts import MANIFEST_NAME, validate_artifacts
-    from rerank import has_relevant_passage, rerank_dataframe
     from retrieval_utils import query_references_unknown_year
 
 # ------------------------------------------------
@@ -33,6 +31,7 @@ EMBEDDING_MODEL = os.getenv(
     "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
 )
 MIN_VECTOR_SIMILARITY = float(os.getenv("MIN_VECTOR_SIMILARITY", "0.25"))
+HYBRID_CANDIDATE_K = int(os.getenv("HYBRID_CANDIDATE_K", "40"))
 
 @lru_cache(maxsize=1)
 def load_chunks_df():
@@ -77,9 +76,6 @@ def hybrid_search(
     query,
     top_k=5,
     max_chunks_per_doc=2,
-    *,
-    rerank=True,
-    candidate_k=40,
 ):
     df = load_chunks_df()
     if (
@@ -103,7 +99,7 @@ def hybrid_search(
     bm25_scores = bm25.get_scores(tokenized_query)
 
     bm25_max = float(np.max(bm25_scores)) if np.max(bm25_scores) > 0 else 1.0
-    pool_size = min(max(candidate_k, top_k), len(df))
+    pool_size = min(max(HYBRID_CANDIDATE_K, top_k), len(df))
     bm25_indices = np.argsort(bm25_scores)[::-1][:pool_size]
 
     query_vec = model.encode([query], normalize_embeddings=True).astype("float32")
@@ -128,16 +124,6 @@ def hybrid_search(
     results["hybrid_score"] = 0.5 * results["bm25_score"] + 0.5 * results["vector_score"]
     results = results.sort_values("hybrid_score", ascending=False)
     results = results.head(pool_size)
-    if rerank:
-        reranked = rerank_dataframe(
-            query,
-            results,
-            top_k=top_k,
-            max_chunks_per_doc=max_chunks_per_doc,
-        )
-        if not has_relevant_passage(reranked["rerank_score"].tolist()):
-            return reranked.iloc[0:0].copy()
-        return reranked
     if max_chunks_per_doc > 0:
         results["_doc_rank"] = results.groupby("doc_id").cumcount()
         results = results[results["_doc_rank"] < max_chunks_per_doc].drop(columns="_doc_rank")

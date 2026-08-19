@@ -76,7 +76,7 @@ def main() -> None:
         "",
         "## Setup",
         "",
-        "- A: reranked RAG pipeline with enforced claim-level citation verification",
+        "- A: hybrid RAG pipeline with enforced claim-level citation verification",
         "- B: Baseline chat model (same model, no retrieval context)",
         f"- Questions: {n}",
         "",

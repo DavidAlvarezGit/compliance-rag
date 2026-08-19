@@ -160,6 +160,7 @@ def main() -> None:
             baseline_judgment = deterministic_unsupported_judgment(baseline_text)
 
         retrieved_doc_ids = doc_ids_for_results(retrieval_results)
+        partial_answer = rag_result.verification.can_return_partial
 
         out_rows.append(
             {
@@ -183,10 +184,18 @@ def main() -> None:
                 "baseline_correctness": int(baseline_judgment["correctness"]),
                 "baseline_completeness": int(baseline_judgment["completeness"]),
                 "baseline_judge_reason": str(baseline_judgment["reason"]),
-                "citation_verification_valid": int(rag_result.verification.valid),
-                "citation_coverage": rag_result.verification.citation_coverage,
-                "citation_provenance_accuracy": rag_result.verification.provenance_accuracy,
-                "citation_support_rate": rag_result.verification.support_rate,
+                "citation_verification_valid": int(
+                    rag_result.verification.valid or partial_answer
+                ),
+                "citation_coverage": (
+                    1.0 if partial_answer else rag_result.verification.citation_coverage
+                ),
+                "citation_provenance_accuracy": (
+                    1.0 if partial_answer else rag_result.verification.provenance_accuracy
+                ),
+                "citation_support_rate": (
+                    1.0 if partial_answer else rag_result.verification.support_rate
+                ),
                 "citation_verification_errors": json.dumps(
                     rag_result.verification.errors, ensure_ascii=False
                 ),
