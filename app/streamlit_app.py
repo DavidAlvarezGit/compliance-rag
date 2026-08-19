@@ -24,6 +24,9 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.artifacts import MANIFEST_NAME, validate_artifacts
+from src.answer import insufficient_evidence_message
+from src.citations import VerificationReport, verify_citations
+from src.rerank import has_relevant_passage, score_passages
 from src.retrieval_utils import (
     filter_candidates,
     map_vector_results,
@@ -85,6 +88,7 @@ class Chunk:
     bm25: float = 0.0
     vec: float = 0.0
     hybrid: float = 0.0
+    rerank: float = 0.0
 
 
 @dataclass
@@ -246,6 +250,7 @@ def retrieve_candidates(
     allowed_topics: set[str],
     allowed_languages: set[str],
     max_chunks_per_doc: int,
+    use_reranker: bool,
 ) -> list[Chunk]:
     candidate_df = filter_candidates(chunks_df, allowed_topics, allowed_languages)
     if candidate_df.empty:
@@ -305,6 +310,13 @@ def retrieve_candidates(
         rows.append(item)
 
     rows.sort(key=lambda item: item.hybrid, reverse=True)
+    if use_reranker and rows:
+        scores = score_passages(query, [row.chunk_text for row in rows])
+        for row, score in zip(rows, scores):
+            row.rerank = float(score)
+        rows.sort(key=lambda item: item.rerank, reverse=True)
+        if not has_relevant_passage(scores.tolist()):
+            return []
 
     deduped: list[Chunk] = []
     per_doc_counts: dict[str, int] = {}
@@ -321,7 +333,10 @@ def build_context(chunks: list[Chunk], doc_lookup: dict[str, dict[str, str]], ma
     parts = []
     for chunk in chunks[:max_chunks]:
         title = source_title(doc_lookup, chunk.doc_id, chunk.topic)
-        parts.append(f"{title} p.{chunk.page_start}-{chunk.page_end}:\n{chunk.chunk_text}")
+        parts.append(
+            f"Source: {chunk.doc_id} | Title: {title} "
+            f"(pp. {chunk.page_start}-{chunk.page_end})\n{chunk.chunk_text}"
+        )
     return "\n\n---\n\n".join(parts)
 
 
@@ -334,7 +349,7 @@ def generate_answer(
     temperature: float,
     max_chunks_for_llm: int,
     max_tokens: int,
-) -> str:
+) -> tuple[str, VerificationReport]:
     context = build_context(chunks, doc_lookup=doc_lookup, max_chunks=max_chunks_for_llm)
     prompt = f"""
 You are a senior banking compliance analyst.
@@ -342,17 +357,15 @@ Audience: compliance officers, legal reviewers, and risk governance stakeholders
 Use only the context below.
 Answer in the same language as the user's question.
 If the context is insufficient, say that clearly and do not speculate.
+Refuse when the context does not explicitly cover every material entity, jurisdiction, location, date, product, and hypothetical condition in the question.
+Never answer a broader related topic by silently dropping a material qualifier from the question.
 Do not add outside knowledge.
-Every factual claim must include a citation in this format:
-(Source: TITLE pp.X-Y)
-
-Write in a concise but sufficiently informative professional tone.
-Aim for a moderate-length answer: fuller than a brief summary, but not exhaustive.
-Prefer explanation over compression. Unless the evidence is thin, give enough detail for a professional reader to understand the main requirements, conditions, limitations, and practical implications.
-Output sections:
-1) Executive Summary
-2) Compliance Implications
-3) Evidence and Citations
+Write 5-10 concise bullet points when the evidence is sufficient.
+Each bullet MUST contain exactly one factual sentence followed immediately by its citation.
+Do not write introductory text, conclusions, headings, or uncited factual statements.
+Do not combine separately sourced claims in one sentence.
+Use this exact citation format: (Source: DOC_ID pp.X-Y)
+Copy DOC_ID and the page range exactly from the supplied source header.
 
 CONTEXT:
 {context}
@@ -376,7 +389,18 @@ QUESTION:
             {"role": "user", "content": prompt},
         ],
     )
-    return response.choices[0].message.content or ""
+    draft = response.choices[0].message.content or ""
+    evidence = chunks[:max_chunks_for_llm]
+    report = verify_citations(
+        draft,
+        evidence,
+        client=client,
+        model=os.getenv("OPENAI_VERIFIER_MODEL", model),
+        semantic=True,
+        question=query,
+    )
+    answer = draft if report.valid else insufficient_evidence_message(query)
+    return answer, report
 
 
 st.set_page_config(page_title="Compliance Evidence Assistant", layout="wide")
@@ -677,6 +701,7 @@ with st.sidebar:
         bm25_k = st.slider("Keyword candidate pool", 10, 250, 40, 10)
         vec_k = st.slider("Vector candidate pool", 10, 250, 40, 10)
         w_bm25 = st.slider("Keyword weight", 0.0, 1.0, 0.45, 0.05)
+        use_reranker = st.checkbox("Use multilingual cross-encoder reranker", value=True)
         max_chunks_for_llm = st.slider("Evidence passages sent to model", 3, 12, 8, 1)
         max_chunks_per_doc = st.slider("Max passages per source", 1, 5, 2, 1)
 
@@ -723,6 +748,7 @@ if submitted:
                     allowed_topics=allowed_topics,
                     allowed_languages=allowed_languages,
                     max_chunks_per_doc=int(max_chunks_per_doc),
+                    use_reranker=bool(use_reranker),
                 )
             retrieval_latency = time.time() - retrieval_started
         except Exception as exc:
@@ -735,7 +761,7 @@ if submitted:
         else:
             try:
                 with st.spinner("Drafting answer..."):
-                    answer = generate_answer(
+                    answer, verification = generate_answer(
                         client=load_openai_client(),
                         model=model.strip(),
                         query=query.strip(),
@@ -748,6 +774,7 @@ if submitted:
             except Exception as exc:
                 st.error(f"Answer generation failed: {exc}")
                 answer = ""
+                verification = None
 
             if answer:
                 st.caption(
@@ -755,12 +782,37 @@ if submitted:
                 )
                 st.markdown("### Compliance Response")
                 st.write(answer)
+                if verification and verification.valid:
+                    st.success(
+                        f"Verified {len(verification.claims)} factual claims against supplied citations."
+                    )
+                elif verification:
+                    st.warning("The draft failed citation verification and was replaced with a refusal.")
+                    with st.expander("Citation verification details"):
+                        for error in verification.errors:
+                            st.write(f"- {error}")
+
+                if show_sources:
+                    with st.expander("Supporting excerpts", expanded=False):
+                        for rank, chunk in enumerate(candidates[: int(max_chunks_for_llm)], start=1):
+                            title = source_title(doc_lookup, chunk.doc_id, chunk.topic)
+                            score_text = ""
+                            if show_scores:
+                                score_text = (
+                                    f" | hybrid={chunk.hybrid:.3f}"
+                                    + (f" | rerank={chunk.rerank:.3f}" if use_reranker else "")
+                                )
+                            st.markdown(
+                                f"**{rank}. {title}** — `{chunk.doc_id}` "
+                                f"pp. {chunk.page_start}-{chunk.page_end}{score_text}"
+                            )
+                            st.write(chunk.chunk_text)
 st.markdown("</div>", unsafe_allow_html=True)
 
 with st.expander("Operations and Document Register", expanded=False):
     st.markdown(
         """
-- Retrieval stack: BM25 + FAISS
+- Retrieval stack: BM25 + FAISS + multilingual cross-encoder reranking
 - Embedding model: multilingual MiniLM
 - Source registry: manually curated `docs.csv`
 - Evidence packing: paragraph-based chunking with overlap

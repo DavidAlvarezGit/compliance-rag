@@ -13,6 +13,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+      - name: Cache Hugging Face models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
       - name: Install Poetry
         run: python -m pip install poetry
       - name: Install dependencies
@@ -22,3 +27,8 @@ jobs:
           poetry check
           poetry run python src/metadata.py
           poetry run pytest -q
+      - name: Retrieval quality gate
+        env:
+          HF_HUB_DISABLE_PROGRESS_BARS: "1"
+          TRANSFORMERS_VERBOSITY: error
+        run: poetry run python -m eval.run_retrieval_benchmark --check

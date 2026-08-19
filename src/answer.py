@@ -1,14 +1,28 @@
 from pathlib import Path
 import os
+from dataclasses import dataclass
 
 from dotenv import load_dotenv
 from openai import OpenAI
+
+try:
+    from .citations import VerificationReport, verify_citations
+except ImportError:
+    from citations import VerificationReport, verify_citations
 
 # --- Load environment variables ---
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_VERIFIER_MODEL = os.getenv("OPENAI_VERIFIER_MODEL", OPENAI_MODEL)
+
+
+@dataclass
+class AnswerResult:
+    answer: str
+    draft_answer: str
+    verification: VerificationReport
 
 
 def insufficient_evidence_message(query: str) -> str:
@@ -37,7 +51,7 @@ Source: {row['doc_id']} (pp. {row['page_start']}-{row['page_end']})
     return "\n\n".join(context_blocks)
 
 
-def answer_question(query, results=None):
+def answer_question(query, results=None, *, verify=True, return_details=False):
     try:
         from .retrieve_hybrid import hybrid_search
     except ImportError:
@@ -46,7 +60,10 @@ def answer_question(query, results=None):
     if results is None:
         results = hybrid_search(query, top_k=8)
     if results.empty:
-        return insufficient_evidence_message(query)
+        answer = insufficient_evidence_message(query)
+        report = verify_citations(answer, results)
+        result = AnswerResult(answer=answer, draft_answer=answer, verification=report)
+        return result if return_details else result.answer
 
     context = build_context(results)
 
@@ -57,23 +74,19 @@ Your task:
 - Answer strictly using ONLY the provided sources.
 - Answer in the same language as the user's question.
 - If the sources are insufficient, clearly refuse in the same language as the question.
+- Refuse when the sources do not explicitly cover every material entity, jurisdiction, location, date, product, and hypothetical condition in the question.
+- Never answer a broader related topic by silently dropping a material qualifier from the question.
 - Do NOT use outside knowledge.
 - Do NOT generalize beyond what is written.
 - Do not infer or extrapolate beyond what is explicitly written.
 
-Output format (strictly follow this structure):
-
-REPONSE SYNTHETIQUE:
-(5-8 bullet points, clear and factual)
-
-ANALYSE DETAILLEE:
-(3-5 medium-length paragraphs that explain the main points, obligations, limits, exceptions, or conditions in practical terms)
-
-Keep the answer moderately detailed: more complete than a short summary, but avoid long reports and repetition.
-Prefer concrete explanation over compression. Unless the evidence is very limited, provide enough detail that a compliance reader can understand what is required, why it matters, and where the main limits or conditions apply.
-
-Each factual statement MUST include a citation in this format:
-(Source: DOC_ID pp.X-Y)
+Output requirements:
+- Write 5-10 concise bullet points when the evidence is sufficient.
+- Each bullet MUST contain exactly one factual sentence followed immediately by its citation.
+- Do not write introductory text, conclusions, headings, or uncited factual statements.
+- Do not combine separately sourced claims in one sentence.
+- Use this exact citation format: (Source: DOC_ID pp.X-Y)
+- Copy DOC_ID and the page range exactly from the supplied source header.
 
 If multiple sources support a claim, cite multiple sources.
 
@@ -85,7 +98,8 @@ Sources:
 {context}
 """
 
-    response = get_client().chat.completions.create(
+    client = get_client()
+    response = client.chat.completions.create(
         model=OPENAI_MODEL,
         messages=[
             {
@@ -102,7 +116,18 @@ Sources:
         max_completion_tokens=1100,
     )
 
-    return response.choices[0].message.content
+    draft = response.choices[0].message.content or ""
+    report = verify_citations(
+        draft,
+        results,
+        client=client,
+        model=OPENAI_VERIFIER_MODEL,
+        semantic=verify,
+        question=query,
+    )
+    answer = draft if report.valid else insufficient_evidence_message(query)
+    result = AnswerResult(answer=answer, draft_answer=draft, verification=report)
+    return result if return_details else result.answer
 
 
 if __name__ == "__main__":

@@ -1,0 +1,41 @@
+id,question,language,category,is_answerable,relevant_doc_ids,review_status,notes
+1,What responsibilities does the board have for risk governance and internal controls?,EN,governance,1,governance-2017-corporate-governance,curated,Direct document question
+2,How should internal control systems be overseen by the governing body?,EN,governance,1,governance-2017-corporate-governance,curated,English paraphrase
+3,Quelles sont les missions de la FINMA selon la LFINMA ?,FR,governance,1,governance-2007-lfinma,curated,French direct question
+4,Que prévoit l'ordonnance relative à la surveillance des marchés financiers ?,FR,governance,1,governance-2019-ordonnance-lfinma,curated,French title paraphrase
+5,What does the operational resilience framework require for incident management?,EN,operational_risk,1,op-risk-2023-operational-risks,curated,Direct document question
+6,How should banks prepare for disruption and maintain critical operations?,EN,operational_risk,1,op-risk-2023-operational-risks,curated,Semantic paraphrase
+7,What is CET1 and why is it central to Basel III capital requirements?,EN,capital,1,cap-req-2019-basel3,curated,Framework terminology
+8,How does the Basel III framework define minimum capital requirements?,EN,capital,1,cap-req-2019-basel3,curated,Direct framework question
+9,Quelles exigences de fonds propres sont fixées par l'OFR ?,FR,capital,1,cap-req-2012-ofr,curated,French acronym question
+10,Comment sont traités le portefeuille de négociation et les fonds propres pris en compte ?,FR,capital,1,cap-req-2024-portefeuille-negociation,curated,French semantic question
+11,What governance arrangements are expected for liquidity risk management?,EN,liquidity,1,liquidity-risk-2025-liquidity-management,curated,Direct guidance question
+12,How should funding liquidity risk be monitored and reported?,EN,liquidity,1,liquidity-risk-2025-liquidity-management,curated,Semantic paraphrase
+13,Quelles obligations découlent de l'ordonnance sur les liquidités ?,FR,liquidity,1,lcr-2012-oliq,curated,French ordinance question
+14,What governance expectations apply to climate and nature-related financial risks?,EN,climate,1,climate-risk-2026-climate-nature,curated,Direct guidance question
+15,How should a bank identify and manage nature-related financial risk?,EN,climate,1,climate-risk-2026-climate-nature,curated,Semantic paraphrase
+16,What supervisory rules govern securities trading conduct?,EN,market_conduct,1,conduct-2013-securities-trading,curated,Direct guidance question
+17,Quelles règles de comportement la LSFin impose-t-elle aux prestataires financiers ?,FR,market_conduct,1,conduct-2018-lsfin|conduct-2025-regles-comportement,curated,Multi-document French question
+18,Que disent la LSFin et l'OSFin sur les règles de comportement ?,FR,market_conduct,1,conduct-2025-regles-comportement|conduct-2018-lsfin,curated,Multi-document title question
+19,Quelles règles régissent les risques de crédit des banques et maisons de titres ?,FR,credit_risk,1,credit-sa-2024-risques-credit,curated,French direct question
+20,Comment l'ordonnance FINMA encadre-t-elle le leverage ratio ?,FR,leverage,1,leverage-2024-leverage-ratio,curated,French direct question
+21,Quelles obligations de publication s'appliquent aux banques et maisons de titres ?,FR,disclosure,1,other-2024-publication-obligations,curated,French direct question
+22,Quelles règles comptables figurent dans l'OEPC-FINMA ?,FR,accounting,1,other-2019-oepc-finma,curated,French acronym question
+23,Que prévoit l'OIns-FINMA en matière d'insolvabilité ?,FR,insolvency,1,other-2025-oins-finma,curated,French acronym question
+24,Quelles règles s'appliquent aux banques étrangères en Suisse ?,FR,foreign_banks,1,other-2015-banques-etrangeres,curated,French semantic question
+25,Que prévoit l'ordonnance sur les banques ?,FR,banking_law,1,other-2014-ob,curated,French title question
+26,Quelles exigences figurent dans la loi sur les banques ?,FR,banking_law,1,other-2024-lb,curated,French direct question
+27,Comment fonctionne la surveillance consolidée des groupes financiers ?,FR,consolidated_supervision,1,other-2025-surveillance-consolidee,curated,French semantic question
+28,Which sources address both board oversight and risk controls?,EN,governance,1,governance-2017-corporate-governance|governance-2007-lfinma,curated,Multi-document question
+29,Which materials cover capital adequacy under Basel and Swiss law?,EN,capital,1,cap-req-2019-basel3|cap-req-2012-ofr,curated,Cross-jurisdiction question
+30,Quels textes portent sur les règles de conduite sur les marchés financiers ?,FR,market_conduct,1,conduct-2018-lsfin|conduct-2025-regles-comportement|conduct-2013-securities-trading,curated,Three-document question
+31,What Basel rule in 2035 sets crypto reserve ratios?,EN,out_of_scope,0,,curated,Unknown future year
+32,What does the corpus prescribe for TikTok exposure limits?,EN,out_of_scope,0,,curated,Unsupported entity
+33,What is the Swiss GDP forecast in these regulatory documents?,EN,out_of_scope,0,,curated,Unsupported subject
+34,Quelles règles concernent les garanties immobilières sur Mars ?,FR,out_of_scope,0,,curated,Unsupported fictional subject
+35,What are the 2029 DeFi leverage caps?,EN,out_of_scope,0,,curated,Unknown future year
+36,Que prévoit Bâle en 2032 pour les paiements interplanétaires ?,FR,out_of_scope,0,,curated,Unknown future year
+37,What social-media rumor stress-test ratio is mandatory?,EN,out_of_scope,0,,curated,Unsupported subject
+38,What AI model-governance rule took effect in 2011?,EN,out_of_scope,0,,curated,Absent corpus year and subject
+39,What retail CBDC limits apply in 2030?,EN,out_of_scope,0,,curated,Unknown future year
+40,Quel plafond d'exposition TikTok les banques doivent-elles appliquer ?,FR,out_of_scope,0,,curated,Unsupported entity
