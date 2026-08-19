@@ -351,6 +351,9 @@ Audience: compliance officers, legal reviewers, and risk governance stakeholders
 Use only the context below.
 Answer in the same language as the user's question.
 If the context is insufficient, say that clearly and do not speculate.
+Unless the user explicitly names another jurisdiction, interpret the question from a Swiss regulatory perspective.
+Treat a cited Swiss law, FINMA instrument, or FMIA provision as sufficient Swiss jurisdictional context; do not require every claim to repeat "Switzerland".
+Basel standards are international standards. Do not present them as binding Swiss law unless the supplied context supports their Swiss implementation.
 Preserve the scope of the question and do not invent missing dates, jurisdictions, entities, products, or conditions.
 Context established by the question or cited legal instrument does not need to be repeated in every bullet.
 Do not add outside knowledge.
@@ -407,8 +410,9 @@ st.set_page_config(
 
 st.title("Compliance evidence assistant")
 st.write(
-    "Ask a question about the Basel and FINMA material in this project. "
-    "Every returned claim is checked against a cited document and page."
+    "Ask about Swiss banking regulation using the FINMA and Basel material in this project. "
+    "Switzerland is the default jurisdiction unless you name another one, and every returned "
+    "claim is checked against a cited document and page."
 )
 with st.container(horizontal=True, gap="small"):
     st.badge("22 regulatory documents", icon=":material/library_books:", color="blue")

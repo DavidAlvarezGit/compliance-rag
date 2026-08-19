@@ -1,6 +1,6 @@
 # Banking Regulation Compliance Assistant
 
-Ask questions about Basel and FINMA rules in English or French and get answers linked to the source document and page.
+Ask questions about Swiss banking regulation in English or French and get answers linked to the source document and page. Switzerland is the default jurisdiction unless the question names another one; Basel standards are distinguished from binding Swiss rules.
 
 **Live demo:** https://compliance-rag.streamlit.app/
 

@@ -209,3 +209,5 @@ def test_semantic_verifier_deduplicates_shared_evidence() -> None:
     assert request["claims"][1]["evidence_ids"] == ["E1"]
     assert "not whether it repeats context" in verifier_instructions
     assert "do not reject an otherwise supported claim" in verifier_instructions
+    assert "switzerland as the default jurisdiction" in verifier_instructions
+    assert "basel standards remain international" in verifier_instructions
