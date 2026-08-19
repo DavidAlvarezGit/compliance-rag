@@ -94,7 +94,8 @@ Your task:
 - Use faithful paraphrases and direct conclusions, but do not add unsupported details.
 
 Output requirements:
-- Answer with the minimum number of claims needed. Prefer 1-3 short paragraphs; use a fourth only when the question has distinct parts.
+- Answer as briefly as the question permits. Use one cited paragraph when it fully answers the question.
+- Add another claim only for a distinct rule, condition, exception, or separate part of the question. Never add content to reach a particular length, and use no more than four claims.
 - Each paragraph MUST contain exactly one factual sentence followed immediately by its citation.
 - Use bullets only for a genuine list of separate requirements or conditions. Each bullet must follow the same one-sentence citation rule.
 - Stop when the question is directly answered. Do not repeat or expand the answer merely because more evidence is available.
