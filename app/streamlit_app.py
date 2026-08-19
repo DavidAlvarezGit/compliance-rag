@@ -418,16 +418,17 @@ QUESTION:
 
 
 st.set_page_config(
-    page_title="Compliance evidence assistant",
+    page_title="Swiss banking regulation assistant",
     page_icon=":material/policy:",
     layout="centered",
 )
 
-st.title("Compliance evidence assistant")
+st.title("Swiss banking regulation assistant")
 st.write(
-    "Ask about Swiss banking regulation using the FINMA and Basel material in this project. "
-    "Switzerland is the default jurisdiction unless you name another one, and every returned "
-    "claim is checked against a cited document and page."
+    "Ask a question about Swiss banking rules in English or French. The assistant searches "
+    "the FINMA and Basel documents in this collection, answers from those sources, and shows "
+    "the document and page behind each answer. Questions are treated as relating to Switzerland "
+    "unless you specify another country."
 )
 with st.container(horizontal=True, gap="small"):
     st.badge("22 regulatory documents", icon=":material/library_books:", color="blue")
