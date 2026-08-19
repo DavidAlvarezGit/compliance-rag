@@ -4,7 +4,6 @@ import os
 import re
 import sys
 import unicodedata
-from html import escape
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -236,24 +235,6 @@ def source_title(doc_lookup: dict[str, dict[str, str]], doc_id: str, topic: Opti
     return doc_id
 
 
-def render_register_table(df: pd.DataFrame) -> str:
-    rows = []
-    for row in df.itertuples(index=False):
-        rows.append(
-            f"<tr><td>{escape(str(row.title))}</td><td>{escape(str(row.topic))}</td></tr>"
-        )
-    return """
-<table class="register-table">
-  <thead>
-    <tr><th>Source</th><th>Topic</th></tr>
-  </thead>
-  <tbody>
-    {rows}
-  </tbody>
-</table>
-""".strip().format(rows="".join(rows))
-
-
 def retrieve_candidates(
     query: str,
     chunks_df: pd.DataFrame,
@@ -418,295 +399,53 @@ QUESTION:
     return answer, report
 
 
-st.set_page_config(page_title="Compliance Evidence Assistant", layout="wide")
+st.set_page_config(
+    page_title="Compliance evidence assistant",
+    page_icon=":material/policy:",
+    layout="centered",
+)
 
-docs_df = load_docs(DOCS_PATH, Path(DOCS_PATH).stat().st_mtime)
-doc_lookup = build_doc_lookup(docs_df)
-retrieval = load_retrieval_resources(
-    CHUNKS_PATH,
-    Path(CHUNKS_PATH).stat().st_mtime,
-    FAISS_INDEX_PATH,
-    Path(FAISS_INDEX_PATH).stat().st_mtime,
-    EMBEDDING_MODEL,
+st.title("Compliance evidence assistant")
+st.write(
+    "Ask a question about the Basel and FINMA material in this project. "
+    "Every returned claim is checked against a cited document and page."
 )
-chunks_df = retrieval.chunks_df
-bm25 = retrieval.bm25
-embedder = retrieval.embedder
-faiss_index = retrieval.index
-validate_artifacts(
-    faiss_index,
-    chunks_df,
-    embedding_model=EMBEDDING_MODEL,
-    manifest_path=Path(INDEX_MANIFEST_PATH),
-    metadata_path=Path(EMBEDDING_METADATA_PATH),
-)
+with st.container(horizontal=True, gap="small"):
+    st.badge("22 regulatory documents", icon=":material/library_books:", color="blue")
+    st.badge("English and French", icon=":material/translate:", color="gray")
+    st.badge("Evidence checked", icon=":material/fact_check:", color="green")
+
+with st.spinner("Loading regulatory index..."):
+    docs_df = load_docs(DOCS_PATH, Path(DOCS_PATH).stat().st_mtime)
+    doc_lookup = build_doc_lookup(docs_df)
+    retrieval = load_retrieval_resources(
+        CHUNKS_PATH,
+        Path(CHUNKS_PATH).stat().st_mtime,
+        FAISS_INDEX_PATH,
+        Path(FAISS_INDEX_PATH).stat().st_mtime,
+        EMBEDDING_MODEL,
+    )
+    chunks_df = retrieval.chunks_df
+    bm25 = retrieval.bm25
+    embedder = retrieval.embedder
+    faiss_index = retrieval.index
+    validate_artifacts(
+        faiss_index,
+        chunks_df,
+        embedding_model=EMBEDDING_MODEL,
+        manifest_path=Path(INDEX_MANIFEST_PATH),
+        metadata_path=Path(EMBEDDING_METADATA_PATH),
+    )
 
 available_topics = sorted(topic for topic in docs_df["topic"].dropna().unique().tolist())
 available_languages = sorted(language for language in docs_df["language"].dropna().unique().tolist())
 
-st.markdown(
-    """
-<style>
-:root {
-  --bg: #f5f5f5;
-  --panel: #ffffff;
-  --ink: #111111;
-  --muted: #333333;
-  --accent: #0b57d0;
-  --border: #d0d0d0;
-  --soft: #ffffff;
-}
-.stApp {
-  background: var(--bg);
-  color: var(--ink);
-}
-.main .block-container {
-  max-width: 1180px;
-  padding-top: 2rem;
-  padding-bottom: 2rem;
-}
-.hero {
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
-}
-.hero-kicker {
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 0.4rem;
-  font-weight: 700;
-}
-.hero-title {
-  font-size: 2.2rem;
-  line-height: 1.1;
-  margin: 0;
-  color: var(--ink);
-  font-weight: 800;
-}
-.hero-copy {
-  margin-top: 0.8rem;
-  max-width: 760px;
-  color: var(--muted);
-  font-size: 1rem;
-}
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 1rem;
-}
-.source-card {
-  background: #fafafa;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.9rem 1rem;
-  margin-bottom: 0.8rem;
-}
-.source-title {
-  font-weight: 700;
-  color: var(--ink);
-}
-.source-meta {
-  color: var(--muted);
-  font-size: 0.88rem;
-  margin-top: 0.15rem;
-}
-.source-body {
-  margin-top: 0.7rem;
-  color: var(--ink);
-  font-size: 0.95rem;
-}
-.register-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 0.35rem;
-}
-.register-table th,
-.register-table td {
-  text-align: left;
-  vertical-align: top;
-  padding: 0.55rem 0.4rem;
-  border-bottom: 1px solid var(--border);
-  color: #111111;
-}
-.register-table th {
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #444444;
-}
-[data-testid="stSidebar"] {
-  background: #f0f0f0;
-  border-left: 1px solid var(--border);
-}
-[data-testid="stSidebar"] *,
-.stMarkdown *,
-label,
-p,
-li,
-span,
-div,
-h1,
-h2,
-h3 {
-  color: var(--ink) !important;
-}
-[data-testid="stTextArea"] textarea,
-[data-testid="stTextInput"] input,
-[data-testid="stMultiSelect"] div[data-baseweb="select"],
-[data-testid="stSelectbox"] div[data-baseweb="select"] {
-  background: var(--soft) !important;
-  color: var(--ink) !important;
-  border-color: var(--border) !important;
-  opacity: 1 !important;
-}
-[data-testid="stMultiSelect"] *,
-[data-testid="stSelectbox"] *,
-[data-baseweb="select"] *,
-[data-baseweb="popover"] *,
-[data-baseweb="menu"] * {
-  color: #111111 !important;
-}
-[data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
-[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-[data-baseweb="select"] > div,
-[data-baseweb="select"] > div > div {
-  background: #ffffff !important;
-  color: #111111 !important;
-  opacity: 1 !important;
-}
-[data-baseweb="select"] input {
-  color: #111111 !important;
-  -webkit-text-fill-color: #111111 !important;
-}
-[data-baseweb="select"] svg {
-  fill: #111111 !important;
-}
-[data-testid="stTextArea"] textarea::placeholder,
-[data-testid="stTextInput"] input::placeholder {
-  color: #666666 !important;
-  opacity: 1 !important;
-}
-[data-baseweb="tag"] {
-  background: #e8f0fe !important;
-  color: var(--ink) !important;
-}
-[data-baseweb="select"] > div {
-  background: #ffffff !important;
-  color: var(--ink) !important;
-}
-[role="listbox"] {
-  background: #ffffff !important;
-  border: 1px solid var(--border) !important;
-  color: #111111 !important;
-  opacity: 1 !important;
-}
-[role="option"] {
-  background: #ffffff !important;
-  color: #111111 !important;
-  opacity: 1 !important;
-}
-[role="option"][aria-selected="true"] {
-  background: #e8f0fe !important;
-  color: #111111 !important;
-}
-[role="option"]:hover {
-  background: #f2f6ff !important;
-  color: #111111 !important;
-}
-ul[role="listbox"] *,
-li[role="option"] * {
-  color: #111111 !important;
-  opacity: 1 !important;
-}
-button[kind="primary"] {
-  background: var(--accent) !important;
-  color: #ffffff !important;
-  border: 1px solid var(--accent) !important;
-}
-button[kind="secondary"] {
-  background: #ffffff !important;
-  color: var(--ink) !important;
-  border: 1px solid var(--border) !important;
-}
-[data-testid="stButton"] button {
-  opacity: 1 !important;
-}
-[data-testid="stTabs"] button {
-  color: #444444 !important;
-}
-[data-testid="stTabs"] button[aria-selected="true"] {
-  color: var(--ink) !important;
-}
-[data-testid="stDataFrame"] * {
-  color: var(--ink) !important;
-  opacity: 1 !important;
-}
-[data-testid="stAlertContainer"] * {
-  color: var(--ink) !important;
-}
-[data-testid="stCaptionContainer"] {
-  color: #555555 !important;
-}
-[data-baseweb="slider"] * {
-  color: #111111 !important;
-}
-[data-baseweb="slider"] [role="slider"] {
-  background: #0b57d0 !important;
-  border-color: #0b57d0 !important;
-  box-shadow: 0 0 0 2px #ffffff !important;
-}
-[data-baseweb="slider"] > div > div:first-child,
-[data-baseweb="slider"] > div > div:first-child > div {
-  background: #d0d0d0 !important;
-}
-[data-baseweb="slider"] > div > div:nth-child(2),
-[data-baseweb="slider"] > div > div:nth-child(2) > div {
-  background: #0b57d0 !important;
-}
-[data-testid="stExpander"] {
-  background: #ffffff !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 12px !important;
-}
-[data-testid="stExpander"] details,
-[data-testid="stExpander"] summary,
-[data-testid="stExpander"] summary *,
-[data-testid="stExpanderDetails"],
-[data-testid="stExpanderDetails"] * {
-  background: #ffffff !important;
-  color: #111111 !important;
-  opacity: 1 !important;
-}
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    """
-<div class="hero">
-  <div class="hero-kicker">Grounded Regulatory Analysis</div>
-  <h1 class="hero-title">Compliance Evidence Assistant</h1>
-  <div class="hero-copy">
-    Ask for a regulatory answer, and the assistant will draft a concise response using only retrieved source passages.
-  </div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
-
 with st.sidebar:
-    st.markdown("### Assistant Settings")
-    model = st.text_input("Answer model", value=DEFAULT_MODEL)
-    show_sources = st.checkbox("Show supporting excerpts", value=True)
-    show_scores = st.checkbox("Show retrieval scores", value=False)
+    st.header("Settings")
+    show_sources = st.toggle("Show supporting excerpts", value=True)
+    show_scores = st.toggle("Show retrieval scores", value=False)
 
-    with st.expander("Advanced Retrieval", expanded=False):
+    with st.expander("Retrieval", icon=":material/search:"):
         topic_filter = st.multiselect(
             "Limit to topics",
             options=available_topics,
@@ -719,26 +458,52 @@ with st.sidebar:
         max_chunks_for_llm = st.slider("Evidence passages sent to model", 3, 12, 8, 1)
         max_chunks_per_doc = st.slider("Max passages per source", 1, 5, 2, 1)
 
-    with st.expander("Advanced Generation", expanded=False):
+    with st.expander("Generation", icon=":material/tune:"):
+        model = st.text_input("Answer model", value=DEFAULT_MODEL)
         temperature = st.slider("Temperature", 0.0, 0.5, 0.0, 0.05)
         max_tokens = st.slider("Max completion tokens", 256, 2000, 1500, 50)
+    st.caption("Research aid only. Final decisions require qualified review.")
 
-st.markdown('<div class="panel">', unsafe_allow_html=True)
-st.subheader("Ask a question")
-example_cols = st.columns(len(EXAMPLE_QUESTIONS))
-for idx, question in enumerate(EXAMPLE_QUESTIONS):
-    if example_cols[idx].button(question, key=f"example_{idx}", use_container_width=True):
-        st.session_state["question_input"] = question
+example_labels = {
+    EXAMPLE_QUESTIONS[0]: "Board oversight",
+    EXAMPLE_QUESTIONS[1]: "Operational resilience",
+    EXAMPLE_QUESTIONS[2]: "Liquidité",
+    EXAMPLE_QUESTIONS[3]: "Climate risk",
+}
 
-with st.form("ask_form", clear_on_submit=False):
-    query = st.text_area(
-        "Question",
-        height=150,
-        key="question_input",
-        placeholder="Example: What are the current internal control responsibilities of the board, and how should evidence be documented?",
+
+def apply_example() -> None:
+    selected = st.session_state.get("example_question")
+    if selected:
+        st.session_state["question_input"] = selected
+
+
+with st.container(border=True):
+    st.subheader("Ask a question")
+    st.caption("Try an example or enter your own question in English or French.")
+    st.pills(
+        "Example questions",
+        EXAMPLE_QUESTIONS,
+        format_func=lambda value: example_labels[value],
+        key="example_question",
+        on_change=apply_example,
         label_visibility="collapsed",
+        width="stretch",
     )
-    submitted = st.form_submit_button("Generate Answer", type="primary", use_container_width=True)
+    with st.form("ask_form", clear_on_submit=False, border=False):
+        query = st.text_area(
+            "Question",
+            height=130,
+            key="question_input",
+            placeholder="Ask about governance, capital, liquidity, conduct, or operational risk...",
+            label_visibility="collapsed",
+        )
+        submitted = st.form_submit_button(
+            "Generate answer",
+            type="primary",
+            icon=":material/search:",
+            width="stretch",
+        )
 
 if submitted:
     if not query.strip():
@@ -793,75 +558,79 @@ if submitted:
                 partial_answer_available = bool(
                     verification and getattr(verification, "can_return_partial", False)
                 )
-                st.markdown("### Compliance Response")
-                if verification and verification.is_refusal:
+                with st.container(border=True):
+                    st.subheader("Answer")
                     st.write(answer)
-                    st.warning("The retrieved sources were insufficient for a supported answer.")
-                elif verification and (verification.valid or partial_answer_available):
-                    st.write(answer)
-                    if verification.valid:
-                        st.success(
-                            f"Verified {len(verification.claims)} claims against supplied evidence."
-                        )
-                    else:
-                        verified_claims = getattr(verification, "verified_claims", [])
-                        rejected_claims = getattr(verification, "rejected_claims", [])
+                    if verification and verification.is_refusal:
                         st.warning(
-                            f"Showing {len(verified_claims)} verified claims; "
-                            f"removed {len(rejected_claims)} unsupported or invalid claims."
+                            "The retrieved sources were insufficient for a supported answer.",
+                            icon=":material/warning:",
                         )
-                elif verification:
-                    st.write(answer)
-                    st.warning("The draft failed citation verification and was replaced with a refusal.")
-                    with st.expander("Citation verification details"):
-                        for error in verification.errors:
-                            st.write(f"- {error}")
+                    elif verification and (verification.valid or partial_answer_available):
+                        if verification.valid:
+                            st.success(
+                                f"Verified {len(verification.claims)} claims against supplied evidence.",
+                                icon=":material/verified:",
+                            )
+                        else:
+                            verified_claims = getattr(verification, "verified_claims", [])
+                            rejected_claims = getattr(verification, "rejected_claims", [])
+                            st.warning(
+                                f"Showing {len(verified_claims)} verified claims; "
+                                f"removed {len(rejected_claims)} unsupported or invalid claims.",
+                                icon=":material/filter_alt:",
+                            )
+                    elif verification:
+                        st.warning(
+                            "The draft failed citation verification and was replaced with a refusal.",
+                            icon=":material/gpp_maybe:",
+                        )
+                        with st.expander("Verification details", icon=":material/fact_check:"):
+                            for error in verification.errors:
+                                st.write(f"- {error}")
 
                 if show_sources:
-                    with st.expander("Supporting excerpts", expanded=False):
+                    with st.expander(
+                        "Supporting excerpts",
+                        icon=":material/article:",
+                    ):
                         for rank, chunk in enumerate(candidates[: int(max_chunks_for_llm)], start=1):
                             title = source_title(doc_lookup, chunk.doc_id, chunk.topic)
                             score_text = ""
                             if show_scores:
                                 score_text = f" | hybrid={chunk.hybrid:.3f}"
-                            st.markdown(
-                                f"**{rank}. {title}** — `{chunk.doc_id}` "
-                                f"pp. {chunk.page_start}-{chunk.page_end}{score_text}"
-                            )
-                            st.write(chunk.chunk_text)
-st.markdown("</div>", unsafe_allow_html=True)
+                            with st.container(border=True):
+                                st.markdown(f"**{rank}. {title}**")
+                                st.caption(
+                                    f"{chunk.doc_id} · pages {chunk.page_start}–{chunk.page_end}{score_text}"
+                                )
+                                st.write(chunk.chunk_text)
 
-with st.expander("Operations and Document Register", expanded=False):
-    st.markdown(
-        """
-- Retrieval stack: hybrid BM25 + multilingual FAISS search
-- Embedding model: multilingual MiniLM
-- Source registry: manually curated `docs.csv`
-- Evidence packing: paragraph-based chunking with overlap
-""".strip()
+with st.expander("Document register", icon=":material/library_books:"):
+    st.caption(
+        "The assistant searches this fixed collection. Topic and language filters are available in Settings."
     )
     register_df = docs_df[["title", "topic", "language"]].copy()
     register_df["topic"] = register_df["topic"].map(
         lambda value: TOPIC_LABELS.get(value, str(value).replace("_", " ").title())
     )
-    french_df = register_df[register_df["language"].astype(str).str.upper() == "FR"].sort_values("title")
-    english_df = register_df[register_df["language"].astype(str).str.upper() == "EN"].sort_values("title")
-
-    st.caption(
-        f"Sources loaded: {len(register_df)} total | {len(french_df)} French | {len(english_df)} English"
+    register_df = register_df.sort_values(["language", "title"]).rename(
+        columns={"title": "Document", "topic": "Topic", "language": "Language"}
     )
-    fr_col, en_col = st.columns(2, gap="large")
-    with fr_col:
-        st.markdown("#### French Sources")
-        if french_df.empty:
-            st.write("No French sources loaded.")
-        else:
-            st.markdown(render_register_table(french_df), unsafe_allow_html=True)
-    with en_col:
-        st.markdown("#### English Sources")
-        if english_df.empty:
-            st.write("No English sources loaded.")
-        else:
-            st.markdown(render_register_table(english_df), unsafe_allow_html=True)
+    st.dataframe(
+        register_df,
+        hide_index=True,
+        width="stretch",
+        column_config={
+            "Document": st.column_config.TextColumn(width="large"),
+            "Topic": st.column_config.TextColumn(width="medium"),
+            "Language": st.column_config.TextColumn(width="small"),
+        },
+        key="document_register",
+    )
+
+st.caption(
+    "This tool supports regulatory research. It does not provide legal advice or replace professional review."
+)
 
 
