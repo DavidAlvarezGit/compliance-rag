@@ -52,6 +52,7 @@ INDEX_MANIFEST_PATH = os.getenv(
     "INDEX_MANIFEST_PATH", str(BASE_DIR / "data" / "artifacts" / MANIFEST_NAME)
 )
 MIN_VECTOR_SIMILARITY = float(os.getenv("MIN_VECTOR_SIMILARITY", "0.25"))
+RERANK_CANDIDATE_K = int(os.getenv("RERANK_CANDIDATE_K", "40"))
 
 TOPIC_LABELS = {
     "capital_requirements_framework": "Capital Requirements",
@@ -70,8 +71,8 @@ TOPIC_LABELS = {
 
 EXAMPLE_QUESTIONS = [
     "What governance responsibilities does the board have for internal controls?",
-    "How should trading-related operational risk incidents be escalated and managed?",
-    "Quelles sont les obligations principales en matiere de risque de liquidite ?",
+    "What does the operational resilience framework require for incident management?",
+    "Quelles obligations découlent de l'ordonnance sur les liquidités ?",
     "What does the current corpus say about climate and nature-related financial risk governance?",
 ]
 
@@ -311,6 +312,10 @@ def retrieve_candidates(
 
     rows.sort(key=lambda item: item.hybrid, reverse=True)
     if use_reranker and rows:
+        # Keep the interactive path aligned with the benchmarked 40-candidate
+        # reranking stage. Scoring the full BM25/vector union can nearly double
+        # CPU latency without improving the evidence supplied to the model.
+        rows = rows[: max(1, RERANK_CANDIDATE_K)]
         scores = score_passages(query, [row.chunk_text for row in rows])
         for row, score in zip(rows, scores):
             row.rerank = float(score)
@@ -702,6 +707,10 @@ with st.sidebar:
         vec_k = st.slider("Vector candidate pool", 10, 250, 40, 10)
         w_bm25 = st.slider("Keyword weight", 0.0, 1.0, 0.45, 0.05)
         use_reranker = st.checkbox("Use multilingual cross-encoder reranker", value=True)
+        st.caption(
+            f"Reranks the best {RERANK_CANDIDATE_K} candidates for higher-quality evidence; "
+            "this adds several seconds on CPU."
+        )
         max_chunks_for_llm = st.slider("Evidence passages sent to model", 3, 12, 8, 1)
         max_chunks_per_doc = st.slider("Max passages per source", 1, 5, 2, 1)
 
@@ -757,7 +766,10 @@ if submitted:
             retrieval_latency = 0.0
 
         if not candidates:
-            st.warning("No supporting evidence was found with the current filters.")
+            st.warning(
+                "No sufficiently relevant evidence was found. Clear topic/language filters or "
+                "try a question that is directly covered by the document register."
+            )
         else:
             try:
                 with st.spinner("Drafting answer..."):

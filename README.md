@@ -2,101 +2,177 @@
 
 **Live demo:** https://compliance-rag.streamlit.app/
 
-## Overview
+## 1. Project Overview
 
-This project is a bilingual, evidence-grounded assistant for Basel and FINMA banking regulation. It retrieves from a fixed 22-document corpus, reranks candidate passages, generates an answer only from supplied evidence, and verifies every factual claim before showing it.
+This project is a bilingual assistant for searching and understanding Basel and FINMA banking regulation. It helps a user ask a question in English or French, find the relevant passages in a curated 22-document corpus, and receive an answer with inspectable document and page references.
 
-The central safety property is fail-closed behavior: if retrieval finds no sufficiently relevant evidence, a citation points outside the supplied document/page range, semantic support cannot be verified, or verification itself fails, the application returns an explicit insufficient-evidence response instead of the draft.
+The project is designed for situations where a fluent answer is not enough. Compliance officers, legal reviewers, and risk teams also need to know:
 
-Unlike a conventional chatbot, the assistant does not treat fluent text as sufficient. A response must be relevant to the complete question, traceable to the supplied document pages, and semantically supported at claim level before it becomes visible.
+- which approved source supports the answer;
+- where the supporting text appears;
+- whether every factual claim is grounded;
+- and when the available evidence is too weak to answer safely.
 
-## Architecture
+If those checks fail, the application shows an insufficient-evidence response instead of an unsupported draft. This is known as **fail-closed behavior**.
+
+## 2. Problem Definition and Business Value
+
+Banking regulation is long, fragmented, multilingual, and frequently difficult to search. Manual review is reliable but slow. A general-purpose chatbot is faster, but it can rely on outside knowledge, overlook an important condition, or produce a convincing answer without traceable evidence.
+
+This assistant combines the speed of language models with a controlled evidence workflow. It is intended to make initial regulatory research faster and easier to review—not to replace professional legal or compliance judgment.
+
+Compared with a normal chatbot, the system is designed to:
+
+- answer from a fixed regulatory corpus rather than unrestricted model memory;
+- cite the evidence behind every factual claim;
+- preserve important dates, jurisdictions, entities, products, and conditions from the question;
+- refuse questions that the corpus does not support;
+- expose the retrieved passages and ranking scores for review;
+- measure its quality through reproducible benchmarks and regression gates.
+
+## 3. How the System Works
 
 ```text
-PDF registry -> page extraction -> paragraph chunks -> BM25 + FAISS
-                                                        |
-User query -> candidate fusion -> multilingual cross-encoder reranker
-                                      |
-                               grounded answer draft
-                                      |
-                     claim extraction + provenance checks
-                                      |
-                     semantic evidence-support verifier
-                                      |
-                         verified answer or refusal
+Regulatory PDFs
+      ↓
+Clean page text and paragraph-aware chunks
+      ↓
+Keyword search + semantic vector search
+      ↓
+Multilingual relevance reranking
+      ↓
+Evidence-grounded answer draft
+      ↓
+Citation, page, claim-support, and question-relevance checks
+      ↓
+Verified answer — or an explicit refusal
 ```
 
-- `data/metadata/docs.csv` is the source-of-truth document registry.
-- Paragraph-aware chunks retain stable document IDs and page spans.
-- BM25 and multilingual embeddings provide complementary candidate retrieval.
-- `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` reranks a wider candidate pool.
-- Citations use `(Source: DOC_ID pp.X-Y)` and are checked against the exact context supplied to the model.
-- The FAISS manifest validates model name, dimension, row count, metadata hash, and corpus hash at startup.
+### Document preparation
 
-## Request lifecycle and safety checks
+`data/metadata/docs.csv` is the source-of-truth document register. The ingestion pipeline extracts PDF pages, cleans the text, and builds overlapping paragraph-level chunks that retain stable document IDs and page ranges.
 
-1. The query is checked for empty input and unsupported temporal references.
-2. BM25 and FAISS independently retrieve keyword and semantic candidates.
-3. Their normalized scores are fused into a wider candidate pool.
-4. A multilingual cross-encoder reranks the query-passage pairs.
-5. A relevance gate rejects the request when no passage clears the configured threshold.
-6. The answer model receives only the selected excerpts and must produce one cited factual claim per bullet.
-7. Deterministic validation confirms that every cited document and page range was actually supplied.
-8. A semantic verifier checks claim support and whether the answer preserved every material entity, jurisdiction, location, date, product, and condition from the question.
-9. Any failure replaces the draft with a same-language insufficient-evidence response.
+The system creates both a keyword index and a semantic FAISS vector index. An integrity manifest prevents the application from silently using an index that no longer matches the corpus, metadata, vector dimension, or embedding model.
 
-This last relevance check prevents a particularly dangerous RAG failure: producing a well-cited answer about a related general topic while silently ignoring a qualifier in the original question.
+### Retrieval and reranking
 
-## Measured retrieval results
+The application combines:
 
-The included benchmark contains 40 curated questions: 30 answerable and 10 unsupported, spanning English, French, paraphrases, and multi-document questions. Labels are review-ready but have not been independently approved by a banking-regulation SME.
+- **BM25 keyword search**, useful for exact regulatory terminology;
+- **multilingual embeddings**, useful for paraphrases and bilingual questions;
+- **cross-encoder reranking**, which reads the question and each candidate passage together for more accurate ordering;
+- **relevance and temporal gates**, which reject weak evidence and unsupported document years;
+- **source diversity limits**, which prevent one document from occupying every evidence position.
 
-| Metric | Hybrid baseline | Hybrid + reranker | Delta |
+The interactive application reranks the best 40 candidates, matching the benchmarked pipeline and avoiding the previous cost of scoring as many as 80 passages.
+
+### Answer generation and verification
+
+The answer model receives only the selected source passages. It must write concise bullet points containing one factual claim and an exact citation such as:
+
+```text
+(Source: governance-2017-corporate-governance pp.4-5)
+```
+
+Before an answer is displayed, the verifier checks:
+
+1. every factual claim has a citation;
+2. the cited document and page range were actually supplied;
+3. the cited excerpt directly supports the claim;
+4. the answer addresses the complete question;
+5. no material date, location, jurisdiction, entity, product, or condition was silently dropped.
+
+This final check prevents a dangerous failure mode in which an answer is well cited but answers a broader, easier question than the one the user actually asked.
+
+## 4. Engineering Highlights
+
+The repository demonstrates more than a working interface. It includes:
+
+- modular ingestion, retrieval, reranking, generation, and verification components;
+- cached model and artifact loading;
+- explicit document, page, and index integrity contracts;
+- deterministic and model-based grounding checks;
+- English, French, paraphrase, multi-document, and unsupported test cases;
+- versioned quality thresholds enforced in CI;
+- machine-readable benchmark summaries and shareable reports;
+- 16 automated tests covering ingestion, retrieval, ranking, artifacts, citations, question relevance, and refusal behavior;
+- transparent reporting of both improvements and tradeoffs.
+
+## 5. Measured Results
+
+### Retrieval benchmark
+
+The retrieval dataset contains 40 curated questions: 30 answerable and 10 unsupported. The labels are review-ready but have not been independently approved by a banking-regulation subject-matter expert.
+
+| Metric | Hybrid baseline | Hybrid + reranker | Change |
 |---|---:|---:|---:|
 | Recall@5 | 0.956 | 0.911 | -0.044 |
 | Precision@5 | 0.269 | 0.256 | -0.013 |
-| MRR | 0.712 | 0.794 | +0.082 |
-| nDCG@5 | 0.759 | 0.805 | +0.046 |
-| Unsupported-query abstention | 0.500 | 0.800 | +0.300 |
+| Mean reciprocal rank | 0.712 | 0.794 | +0.082 |
+| nDCG@5 ranking quality | 0.759 | 0.805 | +0.046 |
+| Unsupported-question abstention | 50% | 80% | +30 points |
 
-Reranking materially improves first-result quality, ranking quality, and unsupported-query abstention, with a small recall tradeoff. Warm-model mean latency changes from 0.068s to 3.425s on the benchmark machine; this is an explicit production optimization target, not hidden from the result. See the [retrieval report](eval/retrieval_report.md), [machine-readable summary](eval/retrieval_summary.json), and [evaluation methodology](eval/README.md).
+The reranker improves first-result quality, overall ordering, and unsupported-question rejection, with a small recall tradeoff. Warm-model retrieval latency increased from approximately `0.068s` to `3.425s` on the benchmark machine. The application now caps reranking at the same 40-candidate benchmark size to avoid unnecessary CPU work.
 
-The separate 20-question answer benchmark uses an LLM judge for answerable questions and deterministic refusal scoring for unsupported questions.
+See the [retrieval report](eval/retrieval_report.md), [machine-readable summary](eval/retrieval_summary.json), and [evaluation methodology](eval/README.md).
 
-| Answer metric | RAG | No-retrieval baseline |
+### Answer-quality benchmark
+
+The answer benchmark contains 20 separate questions and compares the grounded system with the same language model operating without retrieval.
+
+| Metric | RAG assistant | No-retrieval baseline |
 |---|---:|---:|
 | Correctness | 0.850 | 0.750 |
 | Completeness | 0.850 | 0.750 |
-| Mean latency | 13.169s | 5.186s |
+| Mean end-to-end latency | 13.169s | 5.186s |
 
-RAG retrieval recall@8 is 90%; refusal accuracy is 85%; claim citation coverage is 100%; citation provenance accuracy is 99.2%; semantic citation support is 98.3%; and 80% of answerable responses pass the complete fail-closed verifier. The overall correctness advantage comes from safe abstention on unsupported questions. On answerable questions the baseline generally ties successful RAG answers, while three RAG drafts fail closed rather than expose a partially unsupported response.
+Additional RAG measurements:
 
-See the [answer-quality report](eval/report.md) and [machine-readable summary](eval/answer_summary.json). Answerable questions use a structured LLM judge; unsupported questions use deterministic scoring because repeated evaluation showed that an LLM judge scored identical refusals inconsistently.
+- retrieval recall@8: **90%**;
+- refusal accuracy: **85%**;
+- factual-claim citation coverage: **100%**;
+- citation provenance accuracy: **99.2%**;
+- semantic evidence-support rate: **98.3%**;
+- fully verified answer rate: **80%**.
 
-## Run locally
+The overall correctness advantage comes mainly from safer behavior on unsupported questions. Successful answers usually match the baseline on answerable questions, while the strict system sometimes refuses a partially supported draft rather than expose it. This safety choice improves trustworthiness but reduces coverage and adds latency.
 
-Prerequisites: Python 3.12+, Poetry, and `OPENAI_API_KEY` in `.env`.
+Answerable questions use a structured language-model judge. Unsupported questions use deterministic refusal scoring because repeated testing showed that a model judge could score identical refusals inconsistently. See the [answer-quality report](eval/report.md) and [machine-readable summary](eval/answer_summary.json).
+
+## 6. Run the Project Locally
+
+### Prerequisites
+
+- Python 3.12+
+- Poetry
+- an `OPENAI_API_KEY` in `.env`
+
+### Install and start the application
 
 ```powershell
 poetry install
 poetry run python -m streamlit run app/streamlit_app.py
 ```
 
-Example question:
+Example questions:
 
 ```text
 What governance responsibilities does the board have for internal controls?
+What does the operational resilience framework require for incident management?
+Quelles obligations découlent de l'ordonnance sur les liquidités ?
+What does the current corpus say about climate and nature-related financial risk governance?
 ```
 
-Optional configuration:
+### Optional configuration
 
-- `OPENAI_MODEL`: answer model (default `gpt-4o-mini`)
-- `OPENAI_VERIFIER_MODEL`: semantic citation verifier (defaults to the answer model)
-- `OPENAI_EVAL_MODEL`: answer-quality judge (defaults to the answer model)
-- `RERANKER_MODEL`: sentence-transformers cross-encoder override
-- `MIN_RERANK_SCORE`: top-passage relevance gate (default `0.0`)
+- `OPENAI_MODEL`: answer model; default `gpt-4o-mini`
+- `OPENAI_VERIFIER_MODEL`: semantic verifier; defaults to the answer model
+- `OPENAI_EVAL_MODEL`: benchmark judge; defaults to the answer model
+- `RERANKER_MODEL`: cross-encoder model override
+- `RERANK_CANDIDATE_K`: interactive reranking pool; default `40`
+- `MIN_RERANK_SCORE`: top-passage relevance threshold; default `0.0`
 
-Rebuild all corpus artifacts:
+### Rebuild the corpus and indexes
 
 ```powershell
 poetry run python src/metadata.py
@@ -105,14 +181,14 @@ poetry run python src/chunk.py
 poetry run python src/index_embeddings.py
 ```
 
-Run tests and the local retrieval quality gate:
+### Run tests and evaluation gates
 
 ```powershell
 poetry run pytest -q
 poetry run python -m eval.run_retrieval_benchmark --check
 ```
 
-Run the OpenAI-backed answer benchmark only when sending its questions and retrieved excerpts to the configured API is acceptable:
+The answer benchmark sends its evaluation questions, reference answers, and retrieved regulatory excerpts to the configured OpenAI API:
 
 ```powershell
 poetry run python -m eval.run_ab
@@ -120,27 +196,39 @@ poetry run python -m eval.score_ab --check
 poetry run python -m eval.make_report
 ```
 
-## Repository map
+## 7. Project Structure
 
 ```text
-app/streamlit_app.py             Streamlit UI and inspection controls
-src/retrieve_hybrid.py           BM25/FAISS fusion, gates, and candidate selection
-src/retrieve.py                  standalone BM25 retrieval baseline
-src/retrieve_vector.py           standalone FAISS retrieval baseline
+app/streamlit_app.py             interactive application and inspection controls
+data/metadata/docs.csv           curated regulatory document register
+data/processed/                  extracted pages and retrieval chunks
+data/artifacts/                  FAISS index, metadata, and integrity manifest
+src/parse_pdf.py                 PDF text extraction
+src/chunk.py                     paragraph-aware chunking
+src/index_embeddings.py          embedding and index construction
+src/retrieve.py                  standalone keyword-search baseline
+src/retrieve_vector.py           standalone vector-search baseline
+src/retrieve_hybrid.py           production hybrid retrieval pipeline
 src/rerank.py                    multilingual cross-encoder reranking
 src/answer.py                    grounded generation and fail-closed orchestration
-src/citations.py                 claim-level citation and semantic verification
-src/artifacts.py                 artifact manifest validation
-eval/retrieval_questions.csv     40-question retrieval set
-eval/run_retrieval_benchmark.py  before/after benchmark and regression gate
-eval/answer_questions.csv        20-question answer-quality set
-eval/run_ab.py                   RAG-versus-baseline generation and judging
-tests/                           ingestion, retrieval, ranking, grounding, and eval tests
-.github/workflows/ci.yml         unit tests and retrieval quality gate
+src/citations.py                 citation and semantic verification
+src/artifacts.py                 index and corpus integrity validation
+eval/                            datasets, metrics, thresholds, results, and reports
+tests/                           automated regression tests
+.github/workflows/ci.yml         continuous integration and retrieval quality gate
 ```
 
-The current suite contains 16 tests covering ingestion, artifact integrity, retrieval utilities, ranking metrics, reranker behavior, citation provenance, semantic question relevance, and fail-closed refusal behavior.
+## 8. Current Limitations and Next Steps
 
-## Production-readiness boundaries
+This is a strong engineering and portfolio project, not yet a regulated production service. The next phase should focus on:
 
-This is a strong portfolio/engineering prototype, not yet a regulated production service. The next production phase should focus on independently reviewed labels, adversarial and temporal-version tests, calibrated abstention, reranker latency reduction or serving, authentication and authorization, audit/event logging, observability and SLOs, data-retention controls, and a deployment architecture beyond a single Streamlit process.
+- independent review of evaluation labels by compliance specialists;
+- larger adversarial, multilingual, and regulation-version test sets;
+- authentication, authorization, and user-level access controls;
+- audit logs and evidence-retention policies;
+- monitoring, tracing, cost reporting, and service-level objectives;
+- faster reranker serving or a smaller latency-optimized model;
+- calibrated answer confidence and less all-or-nothing claim recovery;
+- deployment beyond a single Streamlit process.
+
+The current application should be treated as a research and decision-support tool. Final regulatory conclusions still require review by qualified professionals.
