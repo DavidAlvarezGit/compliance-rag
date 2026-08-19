@@ -89,7 +89,7 @@ def select_verified_answer(
     if report.valid:
         return draft
     if getattr(report, "can_return_partial", False):
-        return "\n".join(f"- {claim.text}" for claim in report.verified_claims)
+        return "\n\n".join(claim.text for claim in report.verified_claims)
     return insufficient_evidence_message(query)
 
 
@@ -355,12 +355,13 @@ Unless the user explicitly names another jurisdiction, interpret the question fr
 Treat a cited Swiss law, FINMA instrument, or FMIA provision as sufficient Swiss jurisdictional context; do not require every claim to repeat "Switzerland".
 Basel standards are international standards. Do not present them as binding Swiss law unless the supplied context supports their Swiss implementation.
 Preserve the scope of the question and do not invent missing dates, jurisdictions, entities, products, or conditions.
-Context established by the question or cited legal instrument does not need to be repeated in every bullet.
+Context established by the question or cited legal instrument does not need to be repeated in every claim.
 Do not add outside knowledge.
 Use faithful paraphrases and direct conclusions, but do not add unsupported details.
-Write only the directly supported points needed to answer the question, with at most 6 concise bullets.
-Do not add marginal details merely to reach a target number of bullets.
-Each bullet MUST contain exactly one supported claim followed immediately by its citation.
+Answer with the minimum number of claims needed. Prefer 1-3 short paragraphs; use a fourth only when the question has distinct parts.
+Each paragraph MUST contain exactly one factual sentence followed immediately by its citation.
+Use bullets only for a genuine list of separate requirements or conditions. Each bullet must follow the same one-sentence citation rule.
+Stop when the question is directly answered. Do not repeat or expand the answer merely because more evidence is available.
 Do not write introductory text, conclusions, headings, or uncited factual statements.
 Do not combine separately sourced claims in one sentence.
 Use this exact citation format: (Source: DOC_ID pp.X-Y)

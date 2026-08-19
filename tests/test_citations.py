@@ -162,7 +162,20 @@ def test_invalid_citation_does_not_block_verification_of_other_claims() -> None:
 
     assert report.semantic_checked
     assert report.can_return_partial
-    assert select_verified_answer(draft, report, "What does the board oversee?") == f"- {supported}"
+    assert select_verified_answer(draft, report, "What does the board oversee?") == supported
+
+
+def test_cited_paragraphs_are_verified_without_bullets() -> None:
+    answer = (
+        "The board oversees risk governance and internal controls. "
+        "(Source: governance-doc pp.10-12)"
+    )
+
+    report = verify_citations(answer, evidence())
+
+    assert report.valid
+    assert len(report.claims) == 1
+    assert report.claims[0].text == answer
 
 
 def test_semantic_verifier_deduplicates_shared_evidence() -> None:
