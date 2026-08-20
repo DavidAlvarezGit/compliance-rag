@@ -32,7 +32,6 @@ from src.retrieval_utils import (
 from src.structured_answer import (
     render_model_output,
     structured_answer_response_format,
-    verify_with_structured_claims,
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -99,6 +98,26 @@ def select_verified_answer(
     if getattr(report, "can_return_partial", False):
         return "\n\n".join(claim.text for claim in report.verified_claims)
     return insufficient_evidence_message(query)
+
+
+def verify_answer_compatibly(
+    answer: str,
+    evidence,
+    rendered_claims: tuple[str, ...],
+    **kwargs,
+) -> VerificationReport:
+    """Tolerate a stale citations module during a Streamlit Cloud hot reload."""
+    try:
+        return verify_citations(
+            answer,
+            evidence,
+            claim_texts=rendered_claims,
+            **kwargs,
+        )
+    except TypeError as exc:
+        if "unexpected keyword argument 'claim_texts'" not in str(exc):
+            raise
+        return verify_citations(answer, evidence, **kwargs)
 
 
 @dataclass
@@ -414,15 +433,14 @@ QUESTION:
         raw_draft, insufficient_evidence_message(query)
     )
     evidence = chunks[:max_chunks_for_llm]
-    report = verify_with_structured_claims(
-        verify_citations,
+    report = verify_answer_compatibly(
         draft,
         evidence,
+        rendered_claims,
         client=client,
         model=os.getenv("OPENAI_VERIFIER_MODEL", model),
         semantic=True,
         question=query,
-        claim_texts=rendered_claims,
     )
     answer = select_verified_answer(draft, report, query)
     return answer, report
