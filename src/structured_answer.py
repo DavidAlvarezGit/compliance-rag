@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable, Iterable
 
 
 DOC_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
@@ -158,3 +158,25 @@ def render_model_output(raw: str, refusal_text: str) -> tuple[str, tuple[str, ..
         return refusal_text, ()
     rendered_claims = render_structured_claims(answer)
     return "\n\n".join(rendered_claims), rendered_claims
+
+
+def verify_with_structured_claims(
+    verifier: Callable[..., Any],
+    answer: str,
+    evidence: Any,
+    *,
+    claim_texts: Iterable[str],
+    **kwargs: Any,
+) -> Any:
+    """Support a stale verifier module during a Streamlit Cloud hot reload."""
+    try:
+        return verifier(
+            answer,
+            evidence,
+            claim_texts=claim_texts,
+            **kwargs,
+        )
+    except TypeError as exc:
+        if "unexpected keyword argument 'claim_texts'" not in str(exc):
+            raise
+        return verifier(answer, evidence, **kwargs)

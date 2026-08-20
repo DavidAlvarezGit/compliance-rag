@@ -32,6 +32,7 @@ from src.retrieval_utils import (
 from src.structured_answer import (
     render_model_output,
     structured_answer_response_format,
+    verify_with_structured_claims,
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -413,7 +414,8 @@ QUESTION:
         raw_draft, insufficient_evidence_message(query)
     )
     evidence = chunks[:max_chunks_for_llm]
-    report = verify_citations(
+    report = verify_with_structured_claims(
+        verify_citations,
         draft,
         evidence,
         client=client,

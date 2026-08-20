@@ -10,12 +10,14 @@ try:
     from .structured_answer import (
         render_model_output,
         structured_answer_response_format,
+        verify_with_structured_claims,
     )
 except ImportError:
     from citations import VerificationReport, verify_citations
     from structured_answer import (
         render_model_output,
         structured_answer_response_format,
+        verify_with_structured_claims,
     )
 
 # --- Load environment variables ---
@@ -144,7 +146,8 @@ Sources:
     draft, rendered_claims = render_model_output(
         raw_draft, insufficient_evidence_message(query)
     )
-    report = verify_citations(
+    report = verify_with_structured_claims(
+        verify_citations,
         draft,
         results,
         client=client,

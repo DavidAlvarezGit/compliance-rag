@@ -12,6 +12,7 @@ from src.structured_answer import (
     render_structured_answer,
     render_structured_claims,
     structured_answer_response_format,
+    verify_with_structured_claims,
 )
 
 
@@ -213,3 +214,41 @@ def test_core_answer_path_requests_schema_and_renders_claims(monkeypatch) -> Non
     assert result.verification.valid
     assert result.answer.startswith("The board oversees internal controls.")
     assert captured["response_format"] == structured_answer_response_format()
+
+
+def test_stale_verifier_signature_falls_back_without_claim_texts() -> None:
+    captured: dict = {}
+
+    def legacy_verifier(answer, evidence, *, semantic, question):
+        captured.update(
+            answer=answer,
+            evidence=evidence,
+            semantic=semantic,
+            question=question,
+        )
+        return "legacy-report"
+
+    report = verify_with_structured_claims(
+        legacy_verifier,
+        "Rendered answer",
+        ["evidence"],
+        claim_texts=["Rendered claim"],
+        semantic=True,
+        question="Question?",
+    )
+
+    assert report == "legacy-report"
+    assert captured["question"] == "Question?"
+
+
+def test_verifier_internal_type_error_is_not_hidden() -> None:
+    def broken_verifier(answer, evidence, **kwargs):
+        raise TypeError("internal verifier bug")
+
+    with pytest.raises(TypeError, match="internal verifier bug"):
+        verify_with_structured_claims(
+            broken_verifier,
+            "Rendered answer",
+            [],
+            claim_texts=["Rendered claim"],
+        )
