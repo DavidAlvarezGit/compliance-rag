@@ -100,26 +100,6 @@ def select_verified_answer(
     return insufficient_evidence_message(query)
 
 
-def verify_answer_compatibly(
-    answer: str,
-    evidence,
-    rendered_claims: tuple[str, ...],
-    **kwargs,
-) -> VerificationReport:
-    """Tolerate a stale citations module during a Streamlit Cloud hot reload."""
-    try:
-        return verify_citations(
-            answer,
-            evidence,
-            claim_texts=rendered_claims,
-            **kwargs,
-        )
-    except TypeError as exc:
-        if "unexpected keyword argument 'claim_texts'" not in str(exc):
-            raise
-        return verify_citations(answer, evidence, **kwargs)
-
-
 @dataclass
 class Chunk:
     idx: int
@@ -433,14 +413,14 @@ QUESTION:
         raw_draft, insufficient_evidence_message(query)
     )
     evidence = chunks[:max_chunks_for_llm]
-    report = verify_answer_compatibly(
+    report = verify_citations(
         draft,
         evidence,
-        rendered_claims,
         client=client,
         model=os.getenv("OPENAI_VERIFIER_MODEL", model),
         semantic=True,
         question=query,
+        claim_texts=rendered_claims,
     )
     answer = select_verified_answer(draft, report, query)
     return answer, report
