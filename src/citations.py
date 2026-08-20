@@ -110,47 +110,33 @@ def _is_refusal(text: str) -> bool:
 
 
 def extract_claims(answer: str) -> list[str]:
-    """Extract paragraph- or list-item-level claims from an answer.
-
-    A citation at the end of a prose paragraph supports that paragraph. Splitting
-    it into sentences or display-wrapped lines would incorrectly mark the earlier
-    text as uncited. Blank lines and Markdown list items delimit claims.
-    """
+    """Extract claims using citations as boundaries, not Markdown layout."""
     claims: list[str] = []
-    current: list[str] = []
+    cursor = 0
 
-    def append_current() -> None:
-        if not current:
-            return
-        claim = " ".join(current).strip()
-        words = re.findall(r"\w+", CITATION_PATTERN.sub("", claim))
+    def clean_text(text: str) -> str:
+        lines: list[str] = []
+        for raw_line in text.splitlines():
+            line = re.sub(r"^\s*(?:[-*•]|\d+[.)])\s*", "", raw_line).strip()
+            if not line or line.startswith("#") or re.fullmatch(r"[A-ZÀ-ÖØ-Ý _-]+:?", line):
+                continue
+            lines.append(line)
+        return " ".join(lines).strip()
+
+    for match in CITATION_PATTERN.finditer(answer):
+        text_before_citation = clean_text(answer[cursor : match.start()])
+        citation = match.group(0)
+        words = re.findall(r"\w+", text_before_citation)
         if len(words) >= 4:
-            claims.append(claim)
-        current.clear()
+            claims.append(f"{text_before_citation} {citation}")
+        elif claims:
+            separator = f"{text_before_citation} " if text_before_citation else ""
+            claims[-1] = f"{claims[-1]} {separator}{citation}"
+        cursor = match.end()
 
-    for raw_line in answer.splitlines():
-        line = raw_line.strip()
-        if not line:
-            append_current()
-            continue
-        citation_only = bool(parse_citations(line)) and not CITATION_PATTERN.sub("", line).strip()
-        if citation_only:
-            if current:
-                current.append(line)
-            elif claims:
-                claims[-1] = f"{claims[-1]} {line}"
-            continue
-        if line.startswith("#") or re.fullmatch(r"[A-ZÀ-ÖØ-Ý _-]+:?", line):
-            append_current()
-            continue
-        list_item = re.match(r"^\s*(?:[-*•]|\d+[.)])\s+(?P<text>.+)$", line)
-        if list_item:
-            append_current()
-            current.append(list_item.group("text").strip())
-        else:
-            current.append(line)
-
-    append_current()
+    trailing_text = clean_text(answer[cursor:])
+    if len(re.findall(r"\w+", trailing_text)) >= 4:
+        claims.append(trailing_text)
     return claims
 
 

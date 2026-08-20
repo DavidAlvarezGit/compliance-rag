@@ -218,6 +218,36 @@ def test_citation_on_its_own_paragraph_attaches_to_preceding_claim() -> None:
     assert report.claims[0].citations
 
 
+def test_separate_citation_lines_close_each_preceding_claim() -> None:
+    citation = "(Source: governance-doc pp.10-12)"
+    answer = (
+        "The board oversees risk governance.\n\n"
+        f"{citation}\n\n"
+        "The board also oversees internal controls.\n\n"
+        f"{citation}"
+    )
+
+    report = verify_citations(answer, evidence())
+
+    assert report.valid
+    assert len(report.claims) == 2
+    assert all(claim.citations for claim in report.claims)
+
+
+def test_multiple_consecutive_citations_remain_on_one_claim() -> None:
+    answer = (
+        "The board oversees risk governance and internal controls. "
+        "(Source: governance-doc pp.10-12) "
+        "(Source: governance-doc pp.10-11)"
+    )
+
+    report = verify_citations(answer, evidence())
+
+    assert report.valid
+    assert len(report.claims) == 1
+    assert len(report.claims[0].citations) == 2
+
+
 def test_adjacent_bullets_remain_separate_claims() -> None:
     citation = "(Source: governance-doc pp.10-12)"
     answer = (
