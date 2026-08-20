@@ -178,6 +178,19 @@ def test_cited_paragraphs_are_verified_without_bullets() -> None:
     assert report.claims[0].text == answer
 
 
+def test_trailing_citation_covers_a_multi_sentence_paragraph() -> None:
+    answer = (
+        "The board oversees risk governance. It also oversees internal controls. "
+        "(Source: governance-doc pp.10-12)"
+    )
+
+    report = verify_citations(answer, evidence())
+
+    assert report.valid
+    assert len(report.claims) == 1
+    assert report.citation_coverage == 1.0
+
+
 def test_semantic_verifier_deduplicates_shared_evidence() -> None:
     captured: dict = {}
     payload = {
@@ -224,3 +237,4 @@ def test_semantic_verifier_deduplicates_shared_evidence() -> None:
     assert "do not reject an otherwise supported claim" in verifier_instructions
     assert "switzerland as the default jurisdiction" in verifier_instructions
     assert "basel standards remain international" in verifier_instructions
+    assert "even when they are not exhaustive" in verifier_instructions

@@ -110,16 +110,19 @@ def _is_refusal(text: str) -> bool:
 
 
 def extract_claims(answer: str) -> list[str]:
+    """Extract paragraph- or list-item-level claims from an answer.
+
+    A citation at the end of a prose paragraph supports that paragraph. Splitting
+    it into sentences would incorrectly mark all earlier sentences as uncited.
+    """
     claims: list[str] = []
     for raw_line in answer.splitlines():
         line = re.sub(r"^\s*(?:[-*•]|\d+[.)])\s*", "", raw_line).strip()
         if not line or line.startswith("#") or re.fullmatch(r"[A-ZÀ-ÖØ-Ý _-]+:?", line):
             continue
-        for sentence in re.split(r"(?<=[.!?])\s+(?=[A-ZÀ-ÖØ-Ý])", line):
-            sentence = sentence.strip()
-            words = re.findall(r"\w+", CITATION_PATTERN.sub("", sentence))
-            if len(words) >= 4:
-                claims.append(sentence)
+        words = re.findall(r"\w+", CITATION_PATTERN.sub("", line))
+        if len(words) >= 4:
+            claims.append(line)
     return claims
 
 
@@ -256,7 +259,10 @@ def _semantic_checks(
                     "because it does not repeat a jurisdiction, entity, date, or product that is unambiguous from "
                     "that context. Then judge answers_question using the supported claims together. Set it to "
                     "true only when those claims provide a useful answer to the question as a whole. Set it to "
-                    "false when the answer changes, conflicts with, or genuinely ignores a material restriction."
+                    "false when the answer changes, conflicts with, or genuinely ignores a material restriction. "
+                    "For broad questions asking for rules, duties, or requirements, supported claims that "
+                    "directly provide material examples are a useful answer even when they are not exhaustive. "
+                    "Do not mark such an answer irrelevant only because additional valid requirements may exist."
                 ),
             },
             {

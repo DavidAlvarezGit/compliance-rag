@@ -96,8 +96,8 @@ Your task:
 Output requirements:
 - Answer as briefly as the question permits. Use one cited paragraph when it fully answers the question.
 - Add another claim only for a distinct rule, condition, exception, or separate part of the question. Never add content to reach a particular length, and use no more than four claims.
-- Each paragraph MUST contain exactly one factual sentence followed immediately by its citation.
-- Use bullets only for a genuine list of separate requirements or conditions. Each bullet must follow the same one-sentence citation rule.
+- Keep each paragraph to one claim. It may use one or two closely related factual sentences, followed immediately by the citation supporting the whole paragraph.
+- Use bullets only for a genuine list of separate requirements or conditions. Each bullet must follow the same claim-and-citation rule.
 - Stop when the question is directly answered. Do not repeat or expand the answer merely because more evidence is available.
 - Do not write introductory text, conclusions, headings, or uncited factual statements.
 - Do not combine separately sourced claims in one sentence.
