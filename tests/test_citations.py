@@ -178,89 +178,6 @@ def test_cited_paragraphs_are_verified_without_bullets() -> None:
     assert report.claims[0].text == answer
 
 
-def test_trailing_citation_covers_a_multi_sentence_paragraph() -> None:
-    answer = (
-        "The board oversees risk governance. It also oversees internal controls. "
-        "(Source: governance-doc pp.10-12)"
-    )
-
-    report = verify_citations(answer, evidence())
-
-    assert report.valid
-    assert len(report.claims) == 1
-    assert report.citation_coverage == 1.0
-
-
-def test_wrapped_paragraph_lines_share_the_trailing_citation() -> None:
-    answer = (
-        "The board oversees risk governance and internal controls.\n"
-        "It monitors whether those controls remain effective.\n"
-        "(Source: governance-doc pp.10-12)"
-    )
-
-    report = verify_citations(answer, evidence())
-
-    assert report.valid
-    assert len(report.claims) == 1
-    assert report.claims[0].citations
-
-
-def test_citation_on_its_own_paragraph_attaches_to_preceding_claim() -> None:
-    answer = (
-        "The board oversees risk governance and internal controls.\n\n"
-        "(Source: governance-doc pp.10-12)"
-    )
-
-    report = verify_citations(answer, evidence())
-
-    assert report.valid
-    assert len(report.claims) == 1
-    assert report.claims[0].citations
-
-
-def test_separate_citation_lines_close_each_preceding_claim() -> None:
-    citation = "(Source: governance-doc pp.10-12)"
-    answer = (
-        "The board oversees risk governance.\n\n"
-        f"{citation}\n\n"
-        "The board also oversees internal controls.\n\n"
-        f"{citation}"
-    )
-
-    report = verify_citations(answer, evidence())
-
-    assert report.valid
-    assert len(report.claims) == 2
-    assert all(claim.citations for claim in report.claims)
-
-
-def test_multiple_consecutive_citations_remain_on_one_claim() -> None:
-    answer = (
-        "The board oversees risk governance and internal controls. "
-        "(Source: governance-doc pp.10-12) "
-        "(Source: governance-doc pp.10-11)"
-    )
-
-    report = verify_citations(answer, evidence())
-
-    assert report.valid
-    assert len(report.claims) == 1
-    assert len(report.claims[0].citations) == 2
-
-
-def test_adjacent_bullets_remain_separate_claims() -> None:
-    citation = "(Source: governance-doc pp.10-12)"
-    answer = (
-        f"- The board oversees risk governance. {citation}\n"
-        f"- The board oversees internal controls. {citation}"
-    )
-
-    report = verify_citations(answer, evidence())
-
-    assert report.valid
-    assert len(report.claims) == 2
-
-
 def test_semantic_verifier_deduplicates_shared_evidence() -> None:
     captured: dict = {}
     payload = {
@@ -307,4 +224,3 @@ def test_semantic_verifier_deduplicates_shared_evidence() -> None:
     assert "do not reject an otherwise supported claim" in verifier_instructions
     assert "switzerland as the default jurisdiction" in verifier_instructions
     assert "basel standards remain international" in verifier_instructions
-    assert "even when they are not exhaustive" in verifier_instructions

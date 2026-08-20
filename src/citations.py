@@ -110,33 +110,16 @@ def _is_refusal(text: str) -> bool:
 
 
 def extract_claims(answer: str) -> list[str]:
-    """Extract claims using citations as boundaries, not Markdown layout."""
     claims: list[str] = []
-    cursor = 0
-
-    def clean_text(text: str) -> str:
-        lines: list[str] = []
-        for raw_line in text.splitlines():
-            line = re.sub(r"^\s*(?:[-*•]|\d+[.)])\s*", "", raw_line).strip()
-            if not line or line.startswith("#") or re.fullmatch(r"[A-ZÀ-ÖØ-Ý _-]+:?", line):
-                continue
-            lines.append(line)
-        return " ".join(lines).strip()
-
-    for match in CITATION_PATTERN.finditer(answer):
-        text_before_citation = clean_text(answer[cursor : match.start()])
-        citation = match.group(0)
-        words = re.findall(r"\w+", text_before_citation)
-        if len(words) >= 4:
-            claims.append(f"{text_before_citation} {citation}")
-        elif claims:
-            separator = f"{text_before_citation} " if text_before_citation else ""
-            claims[-1] = f"{claims[-1]} {separator}{citation}"
-        cursor = match.end()
-
-    trailing_text = clean_text(answer[cursor:])
-    if len(re.findall(r"\w+", trailing_text)) >= 4:
-        claims.append(trailing_text)
+    for raw_line in answer.splitlines():
+        line = re.sub(r"^\s*(?:[-*•]|\d+[.)])\s*", "", raw_line).strip()
+        if not line or line.startswith("#") or re.fullmatch(r"[A-ZÀ-ÖØ-Ý _-]+:?", line):
+            continue
+        for sentence in re.split(r"(?<=[.!?])\s+(?=[A-ZÀ-ÖØ-Ý])", line):
+            sentence = sentence.strip()
+            words = re.findall(r"\w+", CITATION_PATTERN.sub("", sentence))
+            if len(words) >= 4:
+                claims.append(sentence)
     return claims
 
 
@@ -273,10 +256,7 @@ def _semantic_checks(
                     "because it does not repeat a jurisdiction, entity, date, or product that is unambiguous from "
                     "that context. Then judge answers_question using the supported claims together. Set it to "
                     "true only when those claims provide a useful answer to the question as a whole. Set it to "
-                    "false when the answer changes, conflicts with, or genuinely ignores a material restriction. "
-                    "For broad questions asking for rules, duties, or requirements, supported claims that "
-                    "directly provide material examples are a useful answer even when they are not exhaustive. "
-                    "Do not mark such an answer irrelevant only because additional valid requirements may exist."
+                    "false when the answer changes, conflicts with, or genuinely ignores a material restriction."
                 ),
             },
             {
@@ -335,17 +315,16 @@ def verify_citations(
 
     semantic_checked = False
     answer_relevance: bool | None = None
-    semantic_candidates = [check for check in checks if check.provenance_valid]
-    if semantic and semantic_candidates:
+    if semantic and checks:
         if client is None or not model:
             errors.append("Semantic verification was requested without a client and model.")
         else:
             try:
                 semantic_results, answer_relevance, answer_reason = _semantic_checks(
-                    client, model, semantic_candidates, rows, question
+                    client, model, checks, rows, question
                 )
                 semantic_checked = True
-                for check in semantic_candidates:
+                for check in checks:
                     check.supported, check.reason = semantic_results.get(
                         check.claim_index, (False, "Verifier omitted this claim.")
                     )
@@ -358,7 +337,7 @@ def verify_citations(
 
     if not refusal and not checks:
         errors.append("The answer contains no verifiable claims.")
-    if semantic and semantic_candidates and not semantic_checked and not any(
+    if semantic and checks and not semantic_checked and not any(
         error.startswith("Semantic verification failed") for error in errors
     ):
         errors.append("Semantic verification did not run.")
