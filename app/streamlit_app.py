@@ -29,6 +29,10 @@ from src.retrieval_utils import (
     map_vector_results,
     query_references_unknown_year,
 )
+from src.structured_answer import (
+    render_model_output,
+    structured_answer_response_format,
+)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -71,7 +75,6 @@ TOPIC_LABELS = {
 EXAMPLE_QUESTIONS = [
     "What governance responsibilities does the board have for internal controls?",
     "What does the operational resilience framework require for incident management?",
-    "Quelles obligations découlent de l'ordonnance sur les liquidités ?",
     "What does the current corpus say about climate and nature-related financial risk governance?",
 ]
 
@@ -371,15 +374,16 @@ Preserve the scope of the question and do not invent missing dates, jurisdiction
 Context established by the question or cited legal instrument does not need to be repeated in every claim.
 Do not add outside knowledge.
 Use faithful paraphrases and direct conclusions, but do not add unsupported details.
-Answer as briefly as the question permits. Use one cited paragraph when it fully answers the question.
+Return refusal=true with an empty claims list when the context is insufficient.
+Otherwise return refusal=false and one to four claims.
+Answer as briefly as the question permits. Use one claim when it fully answers the question.
 Add another claim only for a distinct rule, condition, exception, or separate part of the question. Never add content to reach a particular length, and use no more than four claims.
-Each paragraph MUST contain exactly one factual sentence followed immediately by its citation.
-Use bullets only for a genuine list of separate requirements or conditions. Each bullet must follow the same one-sentence citation rule.
+Put only factual answer text in each claim's text field; do not write citation text there.
+Attach every claim to one or more supplied sources using its citations field.
 Stop when the question is directly answered. Do not repeat or expand the answer merely because more evidence is available.
 Do not write introductory text, conclusions, headings, or uncited factual statements.
 Do not combine separately sourced claims in one sentence.
-Use this exact citation format: (Source: DOC_ID pp.X-Y)
-Copy DOC_ID and the page range exactly from the supplied source header.
+Copy doc_id and the page range exactly from the supplied source header.
 
 CONTEXT:
 {context}
@@ -392,6 +396,7 @@ QUESTION:
         model=model,
         temperature=temperature,
         max_completion_tokens=max_tokens,
+        response_format=structured_answer_response_format(),
         messages=[
             {
                 "role": "system",
@@ -403,7 +408,10 @@ QUESTION:
             {"role": "user", "content": prompt},
         ],
     )
-    draft = response.choices[0].message.content or ""
+    raw_draft = response.choices[0].message.content or ""
+    draft, rendered_claims = render_model_output(
+        raw_draft, insufficient_evidence_message(query)
+    )
     evidence = chunks[:max_chunks_for_llm]
     report = verify_citations(
         draft,
@@ -412,6 +420,7 @@ QUESTION:
         model=os.getenv("OPENAI_VERIFIER_MODEL", model),
         semantic=True,
         question=query,
+        claim_texts=rendered_claims,
     )
     answer = select_verified_answer(draft, report, query)
     return answer, report
@@ -487,8 +496,7 @@ with st.sidebar:
 example_labels = {
     EXAMPLE_QUESTIONS[0]: "Board oversight",
     EXAMPLE_QUESTIONS[1]: "Operational resilience",
-    EXAMPLE_QUESTIONS[2]: "Liquidité",
-    EXAMPLE_QUESTIONS[3]: "Climate risk",
+    EXAMPLE_QUESTIONS[2]: "Climate risk",
 }
 
 

@@ -288,14 +288,19 @@ def verify_citations(
     model: str | None = None,
     semantic: bool = False,
     question: str | None = None,
+    claim_texts: Iterable[str] | None = None,
 ) -> VerificationReport:
     refusal = _is_refusal(answer)
-    claim_texts = [] if refusal else extract_claims(answer)
+    extracted_claim_texts = (
+        []
+        if refusal
+        else list(claim_texts) if claim_texts is not None else extract_claims(answer)
+    )
     rows = _evidence_rows(evidence)
     checks: list[ClaimCheck] = []
     errors: list[str] = []
 
-    for index, text in enumerate(claim_texts):
+    for index, text in enumerate(extracted_claim_texts):
         citations = parse_citations(text)
         provenance_valid = bool(citations) and all(
             _matching_evidence(citation, rows) for citation in citations

@@ -7,8 +7,16 @@ from openai import OpenAI
 
 try:
     from .citations import VerificationReport, verify_citations
+    from .structured_answer import (
+        render_model_output,
+        structured_answer_response_format,
+    )
 except ImportError:
     from citations import VerificationReport, verify_citations
+    from structured_answer import (
+        render_model_output,
+        structured_answer_response_format,
+    )
 
 # --- Load environment variables ---
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -94,17 +102,16 @@ Your task:
 - Use faithful paraphrases and direct conclusions, but do not add unsupported details.
 
 Output requirements:
-- Answer as briefly as the question permits. Use one cited paragraph when it fully answers the question.
+- Return refusal=true with an empty claims list when the sources are insufficient.
+- Otherwise return refusal=false and one to four claims.
+- Answer as briefly as the question permits. Use one claim when it fully answers the question.
 - Add another claim only for a distinct rule, condition, exception, or separate part of the question. Never add content to reach a particular length, and use no more than four claims.
-- Each paragraph MUST contain exactly one factual sentence followed immediately by its citation.
-- Use bullets only for a genuine list of separate requirements or conditions. Each bullet must follow the same one-sentence citation rule.
+- Put only factual answer text in each claim's text field; do not write citation text there.
+- Attach every claim to one or more supplied sources using its citations field.
 - Stop when the question is directly answered. Do not repeat or expand the answer merely because more evidence is available.
 - Do not write introductory text, conclusions, headings, or uncited factual statements.
 - Do not combine separately sourced claims in one sentence.
-- Use this exact citation format: (Source: DOC_ID pp.X-Y)
-- Copy DOC_ID and the page range exactly from the supplied source header.
-
-If multiple sources support a claim, cite multiple sources.
+- Copy doc_id and the page range exactly from the supplied source header.
 
 
 Question:
@@ -130,9 +137,13 @@ Sources:
         ],
         temperature=0.0,
         max_completion_tokens=1100,
+        response_format=structured_answer_response_format(),
     )
 
-    draft = response.choices[0].message.content or ""
+    raw_draft = response.choices[0].message.content or ""
+    draft, rendered_claims = render_model_output(
+        raw_draft, insufficient_evidence_message(query)
+    )
     report = verify_citations(
         draft,
         results,
@@ -140,6 +151,7 @@ Sources:
         model=OPENAI_VERIFIER_MODEL,
         semantic=verify,
         question=query,
+        claim_texts=rendered_claims,
     )
     answer = select_verified_answer(draft, report, query)
     result = AnswerResult(answer=answer, draft_answer=draft, verification=report)
