@@ -191,6 +191,33 @@ def test_trailing_citation_covers_a_multi_sentence_paragraph() -> None:
     assert report.citation_coverage == 1.0
 
 
+def test_wrapped_paragraph_lines_share_the_trailing_citation() -> None:
+    answer = (
+        "The board oversees risk governance and internal controls.\n"
+        "It monitors whether those controls remain effective.\n"
+        "(Source: governance-doc pp.10-12)"
+    )
+
+    report = verify_citations(answer, evidence())
+
+    assert report.valid
+    assert len(report.claims) == 1
+    assert report.claims[0].citations
+
+
+def test_adjacent_bullets_remain_separate_claims() -> None:
+    citation = "(Source: governance-doc pp.10-12)"
+    answer = (
+        f"- The board oversees risk governance. {citation}\n"
+        f"- The board oversees internal controls. {citation}"
+    )
+
+    report = verify_citations(answer, evidence())
+
+    assert report.valid
+    assert len(report.claims) == 2
+
+
 def test_semantic_verifier_deduplicates_shared_evidence() -> None:
     captured: dict = {}
     payload = {

@@ -113,16 +113,37 @@ def extract_claims(answer: str) -> list[str]:
     """Extract paragraph- or list-item-level claims from an answer.
 
     A citation at the end of a prose paragraph supports that paragraph. Splitting
-    it into sentences would incorrectly mark all earlier sentences as uncited.
+    it into sentences or display-wrapped lines would incorrectly mark the earlier
+    text as uncited. Blank lines and Markdown list items delimit claims.
     """
     claims: list[str] = []
-    for raw_line in answer.splitlines():
-        line = re.sub(r"^\s*(?:[-*•]|\d+[.)])\s*", "", raw_line).strip()
-        if not line or line.startswith("#") or re.fullmatch(r"[A-ZÀ-ÖØ-Ý _-]+:?", line):
-            continue
-        words = re.findall(r"\w+", CITATION_PATTERN.sub("", line))
+    current: list[str] = []
+
+    def append_current() -> None:
+        if not current:
+            return
+        claim = " ".join(current).strip()
+        words = re.findall(r"\w+", CITATION_PATTERN.sub("", claim))
         if len(words) >= 4:
-            claims.append(line)
+            claims.append(claim)
+        current.clear()
+
+    for raw_line in answer.splitlines():
+        line = raw_line.strip()
+        if not line:
+            append_current()
+            continue
+        if line.startswith("#") or re.fullmatch(r"[A-ZÀ-ÖØ-Ý _-]+:?", line):
+            append_current()
+            continue
+        list_item = re.match(r"^\s*(?:[-*•]|\d+[.)])\s+(?P<text>.+)$", line)
+        if list_item:
+            append_current()
+            current.append(list_item.group("text").strip())
+        else:
+            current.append(line)
+
+    append_current()
     return claims
 
 
