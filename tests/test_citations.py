@@ -205,6 +205,19 @@ def test_wrapped_paragraph_lines_share_the_trailing_citation() -> None:
     assert report.claims[0].citations
 
 
+def test_citation_on_its_own_paragraph_attaches_to_preceding_claim() -> None:
+    answer = (
+        "The board oversees risk governance and internal controls.\n\n"
+        "(Source: governance-doc pp.10-12)"
+    )
+
+    report = verify_citations(answer, evidence())
+
+    assert report.valid
+    assert len(report.claims) == 1
+    assert report.claims[0].citations
+
+
 def test_adjacent_bullets_remain_separate_claims() -> None:
     citation = "(Source: governance-doc pp.10-12)"
     answer = (

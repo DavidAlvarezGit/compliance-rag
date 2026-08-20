@@ -133,6 +133,13 @@ def extract_claims(answer: str) -> list[str]:
         if not line:
             append_current()
             continue
+        citation_only = bool(parse_citations(line)) and not CITATION_PATTERN.sub("", line).strip()
+        if citation_only:
+            if current:
+                current.append(line)
+            elif claims:
+                claims[-1] = f"{claims[-1]} {line}"
+            continue
         if line.startswith("#") or re.fullmatch(r"[A-ZÀ-ÖØ-Ý _-]+:?", line):
             append_current()
             continue
@@ -342,16 +349,17 @@ def verify_citations(
 
     semantic_checked = False
     answer_relevance: bool | None = None
-    if semantic and checks:
+    semantic_candidates = [check for check in checks if check.provenance_valid]
+    if semantic and semantic_candidates:
         if client is None or not model:
             errors.append("Semantic verification was requested without a client and model.")
         else:
             try:
                 semantic_results, answer_relevance, answer_reason = _semantic_checks(
-                    client, model, checks, rows, question
+                    client, model, semantic_candidates, rows, question
                 )
                 semantic_checked = True
-                for check in checks:
+                for check in semantic_candidates:
                     check.supported, check.reason = semantic_results.get(
                         check.claim_index, (False, "Verifier omitted this claim.")
                     )
@@ -364,7 +372,7 @@ def verify_citations(
 
     if not refusal and not checks:
         errors.append("The answer contains no verifiable claims.")
-    if semantic and checks and not semantic_checked and not any(
+    if semantic and semantic_candidates and not semantic_checked and not any(
         error.startswith("Semantic verification failed") for error in errors
     ):
         errors.append("Semantic verification did not run.")
