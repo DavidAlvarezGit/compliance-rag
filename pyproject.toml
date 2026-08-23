@@ -1,5 +1,5 @@
 [project]
-name = "snb-rag"
+name = "rag"
 version = "0.1.0"
 description = ""
 authors = [
@@ -18,7 +18,7 @@ dependencies = [
     "faiss-cpu (>=1.13.2,<2.0.0)",
     "python-dotenv (>=1.2.2,<2.0.0)",
     "openai (>=2.24.0,<3.0.0)",
-    "streamlit (>=1.54.0,<2.0.0)"
+    "streamlit (>=1.60)"
 ]
 
 [dependency-groups]
