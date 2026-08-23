@@ -1,6 +1,6 @@
 # Banking Regulation Compliance Assistant
 
-Ask questions about Swiss banking regulation in English or French and receive clear, source-grounded answers with direct references to the relevant document and page. Switzerland is treated as the default jurisdiction unless another jurisdiction is specified. The assistant clearly distinguishes between binding Swiss regulatory requirements and international standards or guidance, including the Basel framework.
+Ask questions about Swiss banking regulation in English or French and receive clear, verified answers with direct references to the relevant document and page. Switzerland is treated as the default jurisdiction unless another jurisdiction is specified.
 
 **Live demo:** https://compliance-rag.streamlit.app/
 
