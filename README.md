@@ -70,8 +70,6 @@ What governance responsibilities does the board have for internal controls?
 
 What does the operational resilience framework require for incident management?
 
-Quelles obligations découlent de l'ordonnance sur les liquidités ?
-
 What does the current corpus say about climate and nature-related financial risk governance?
 ```
 
